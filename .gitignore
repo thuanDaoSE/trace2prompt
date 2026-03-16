@@ -1,0 +1,18 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+trace2prompt-linux-*
+trace2prompt-macos-*
+trace2prompt-windows-*
+Trace2Prompt.exe
+
+# IDE & OS Files
+.idea/
+.vscode/
+.DS_Store
+
+# Go workspaces
+go.work

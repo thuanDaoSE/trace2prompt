@@ -70,11 +70,149 @@ sequenceDiagram
 ## ✨ Tính năng nổi bật
 
 - **⚡ Zero-Config (Không cần sửa code):** Cắm Agent vào lệnh chạy app thông thường là có thể bắt đầu monitor.
-- **🧩 Cân mọi Microservices & Async:** Tự động nối vết (Trace) xuyên qua API Gateway, HTTP và Message Queue.
-- **🛡️ Đề cao Bảo mật (Privacy First):** Các thông tin nhạy cảm như Password, JWT Token, Email, Signed URL tự động bị băm nát thành `[REDACTED]` trước khi đưa cho AI.
-- **🤖 Tích hợp AI Agents:** Hỗ trợ giao thức MCP cho phép các AI IDE (như Cursor) tự động trích xuất ngữ cảnh.
+- **🪶 Siêu nhẹ & Tối ưu (Low Footprint):** Được viết bằng Golang, công cụ chạy ngầm cực kỳ êm ái, gần như không tốn CPU và **chỉ chiếm vài chục MB RAM**. Không làm chậm máy của bạn!
+- **🚀 Tăng hiệu suất Debug với AI gấp 10 lần:**
+  - **Gộp Log E2E:** Không còn cãi nhau xem lỗi do Front hay Back. Tool gom trọn Console/Click của Frontend + API Backend + Background System Errors thành 1 luồng duy nhất.
+  - **Soi thấu Database:** Cung cấp chi tiết Flame Graph thứ tự chạy và trích xuất nguyên bản các câu lệnh SQL. AI sẽ nhìn vào đó để bắt ngay các lỗi N+1 Query hoặc Deadlock.
+- **🛡️ Đề cao Bảo mật (Privacy First):** Các thông tin nhạy cảm như Password, JWT Token, Email tự động bị băm nát thành `[REDACTED]` trước khi đưa cho AI.
+- **🤖 Tích hợp AI Agents (MCP):** Hỗ trợ giao thức MCP cho phép các AI IDE (như Cursor) tự động rút trích ngữ cảnh mà không cần Copy-Paste.
 
----
+## 🎯 Ví dụ Output (Cục Prompt thực tế gửi cho AI)
+
+Trace2Prompt sẽ sinh ra một cấu trúc hoàn hảo như sau (bạn chỉ việc Copy & Paste):
+
+<summary><b>  Prompt báo lỗi user không có quyền truy cập</b>
+</summary>
+<br>
+
+```text
+Please analyze the system error based on the E2E Runtime Context below:
+
+=================================================
+TraceID: `6464d81b63cbc1de7184d0c90ce53891`
+
+### 🖥️ ENVIRONMENT & INFRASTRUCTURE
+- Service: `coffee-order-app`
+- OS: `Windows 11 10.0`
+- Runtime: `17.0.12+8-LTS-286`
+- Database: `redis @ localhost:8080`
+- 📊 CPU Usage (At request time): `0.02%`
+- 🧠 JVM Memory Used: `18 MB`
+
+### 🌐 HTTP REQUEST CONTEXT
+- Method: `GET`
+- URL: `/api/v1/products?search=&page=0&size=6`
+- Status Code: `200`
+- 🔐 Backend Received Auth: `[CÓ ĐÍNH KÈM TOKEN/COOKIE]`
+
+- 🍪 **Cookies gửi kèm (Chỉ hiện Key):** `[["jwt, refreshToken, i18next]`
+
+### 👣 FRONTEND JOURNEY (USER JOURNEY)
+- [22:27:49] 🖱️ `CLICK` at `http://localhost:5174/` (Element: `[Menu] A.px-3.py-2.rounded-md.text-sm.font-medium.transition-colors.duration-200.text-amber-200.hover:text-amber-50.hover:bg-amber-800/50.`)
+- [22:27:30] 🌐 `FRONTEND API CALL` `GET http://localhost:8080/api/v1/products?search=&page=0&size=6` -> Status: `200`
+  - 📍 Trang hiện tại: `http://localhost:5174/`
+  - 📶 Mạng: `Online` | 🖥️ Màn hình: `1134x799`
+  - 💻 Browser: `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36`
+  - 🎫 Headers: `{"Accept":"application/json, text/plain, */*"}`
+  - 🔺 Response Body:
+    {
+  "content": [
+    {
+      "id": 1,
+      "name": "Espresso",
+      "description": "Rich and pure espresso shot",
+      "imageUrl": "/Espresso.png",
+      "category": {
+        "id": 2,
+        "name": "Espresso"
+      },
+      "variants": [
+        {
+          "id": 1,
+          "sku": "S-29000",
+          "size": "S",
+          "price": 29000,
+          "stockQuantity": null,
+          "isActive": true
+        },
+        {
+          "id": 2,
+          "sku": "M-35000",
+          "size": "M",
+          "price": 35000,
+          "stockQuantity": null,
+          "isActive": true
+        },
+        {
+          "id": 3,
+          "sku": "L-39000",
+          "size": "L",
+          "price": 39000,
+          "stockQuantity": null,
+          "isActive": true
+        }
+      ],
+      "isActive": true
+    },
+    {
+      "id": 2,
+      "name": "Cappuccino",
+      "description": "Espresso topped with foamy milk",
+      "imageUrl": "/Cappuccino.png",
+      "category": {
+        "id": 5,
+        "name": "Cappuccino"
+      },
+      "variants": [
+        {
+          "id": 4,
+          "sku": "S-35000",
+          "size": "S",
+          "price": 35000,
+          "stockQuantity": null,
+          "isActive": true
+        },
+        {
+          "id": 5,
+          "sku": "M-42000",
+          "size": "M",
+          "price": 42000,
+          "stockQuantity": null,
+          "isActive": true
+        },
+        {
+          "id": 6,
+          "sku": "L-48000",
+          "size": "L",
+          "price
+
+
+    ... [ĐÃ CẮT BỚT DO QUÁ DÀI]
+- [22:27:30] 🖱️ `CLICK` at `http://localhost:5174/checkout` (Element: `[The Coffee Corner] SPAN.text-xl.font-bold.text-amber-50`)
+- [22:24:11] 🖱️ `CLICK` at `http://localhost:5174/checkout` (Element: `[ĐẶT HÀNG & THANH TOÁN] BUTTON.w-full.bg-amber-600.text-white.py-3.5.rounded-lg.font-bold.text-lg.shadow-lg.hover:bg-amber-700.hover:shadow-xl.transition-all.disabled:opacity-50.disabled:cursor-not-allowed`)
+
+### 🛤️ BACKEND JOURNEY (LOGS)
+- [INFO] [CustomUserDetailsService] User [EMAIL_HIDDEN] has authorities: [ROLE_STAFF]
+- [INFO] [ProductController] Calling getAllProducts with search: , page: 0, size: 6
+
+### 🛑 BACKEND EXCEPTION STACKTRACE
+- (Backend did not throw Exception)
+
+### ⏳ EXECUTION ORDER & SQL (FLAME GRAPH)
+- [35 ms] ⚙️ `GET /api/v1/products`
+  - [9 ms] ⚙️ `UserRepository.findByEmail`
+    - [8 ms] ⚙️ `SELECT com.coffeeshop.backend.entity.User`
+      - [3 ms] 🗄️ [DB] `testdb`
+      - [1 ms] 🗄️ [DB] `SELECT testdb.users`
+        - Query: `select u1_0.id,u1_0.created_at,u1_0.email,u1_0.fullname,u1_0.password,u1_0.phone,u1_0.role,u1_0.store_id,u1_0.updated_at
+        FROM users u1_0
+        WHERE u1_0.email=?`
+  - [3 ms] ⚡ [REDIS] `GET`
+    - Lệnh Redis: `GET products::SimpleKey [, Page request [number: 0, size 6, sort: UNSORTED]]`
+=================================================
+
+
+```
 
 ## 🚀 Khởi chạy nhanh (Chỉ 2 phút)
 
@@ -83,13 +221,13 @@ sequenceDiagram
 Bạn có thể chạy Trace2Prompt bằng 1 trong 3 cách sau:
 
 **Cách 1: Tải file chạy sẵn (Nhanh nhất)**
-Tải file nhị phân (Binary) tương ứng với hệ điều hành của bạn tại trang [Releases](https://github.com/yourusername/trace2prompt/releases) và click đúp để chạy.
+Tải file nhị phân (Binary) tương ứng với hệ điều hành của bạn tại trang [Releases](https://github.com/thuanDaoSE/trace2prompt/releases/latest) và click đúp để chạy.
 
 **Cách 2: Build bằng Docker (Không cần cài Go)**
 Nếu máy bạn có Docker, bạn có thể "mượn" Docker để biên dịch mã nguồn thành file chạy cục bộ một cách sạch sẽ:
 
 ```bash
-git clone [https://github.com/yourusername/trace2prompt.git](https://github.com/yourusername/trace2prompt.git)
+git clone https://github.com/thuanDaoSE/trace2prompt.git
 cd trace2prompt
 
 # Với Mac/Linux:
@@ -112,9 +250,11 @@ _(Tool sẽ bắt đầu lắng nghe log ở cổng `localhost:4318` và mở gi
 
 ### Bước 2: Bật OTel cho dự án của bạn
 
+> 💡 **Mẹo nhỏ (Pro Tip):** Lệnh khởi động khá dài, để tiện cho việc dev hàng ngày, anh em nên lưu lệnh này vào một file `run.bat` (với Windows) / `run.sh` (với Mac/Linux), hoặc đưa thẳng cấu hình các biến `-Dotel...` này vào file `launch.json` (VS Code) / Run Configuration (IntelliJ) nhé!
+
 Đã test & hoạt động ổn định với OTel Agent v2.26.0.
 
-Tải OpenTelemetry Java Agent:
+Tải OpenTelemetry Java Agent v2.26.0:
 
 ```bash
 curl -L -o opentelemetry-javaagent.jar "[https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.26.0/opentelemetry-javaagent.jar](https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.26.0/opentelemetry-javaagent.jar)"
@@ -165,14 +305,20 @@ npm install @opentelemetry/auto-instrumentations-node
 Sau đó khởi chạy ứng dụng (kèm theo Agent và Full cấu hình tối ưu):
 
 ```bash
-export OTEL_SERVICE_NAME="my-node-app"
-export OTEL_TRACES_EXPORTER="otlp"
-export OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4318"
-export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
-export OTEL_BSP_SCHEDULE_DELAY=500
-export OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST="Authorization,Cookie,Accept"
+# Cài đặt thư viện cần thiết
+npm install @opentelemetry/auto-instrumentations-node @opentelemetry/api
 
-node --require @opentelemetry/auto-instrumentations-node/register app.js
+# Chạy ứng dụng với các biến môi trường y hệt Java
+env OTEL_SERVICE_NAME="node-backend-app" \
+    OTEL_TRACES_EXPORTER="otlp" \
+    OTEL_LOGS_EXPORTER="otlp" \
+    OTEL_METRICS_EXPORTER="otlp" \
+    OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4318" \
+    OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf" \
+    OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST="Authorization,Cookie,Accept,User-Agent,Content-Type" \
+    OTEL_BSP_SCHEDULE_DELAY=500 \
+    OTEL_BLRP_SCHEDULE_DELAY=500 \
+    node --require @opentelemetry/auto-instrumentations-node/register app.js
 ```
 
 </details>
@@ -191,14 +337,21 @@ opentelemetry-bootstrap -a install
 Bọc lệnh chạy Python của bạn bằng lệnh `opentelemetry-instrument`:
 
 ```bash
-export OTEL_SERVICE_NAME="my-python-app"
-export OTEL_TRACES_EXPORTER="otlp"
-export OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4318"
-export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
-export OTEL_BSP_SCHEDULE_DELAY=500
-export OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST="Authorization,Cookie,Accept"
+# Cài đặt công cụ bọc tự động của OTel
+pip install opentelemetry-distro opentelemetry-exporter-otlp
+opentelemetry-bootstrap -a install
 
-opentelemetry-instrument python app.py
+# Khởi chạy ứng dụng với cấu hình chuẩn
+env OTEL_SERVICE_NAME="python-backend-app" \
+    OTEL_TRACES_EXPORTER="otlp" \
+    OTEL_LOGS_EXPORTER="otlp" \
+    OTEL_METRICS_EXPORTER="otlp" \
+    OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4318" \
+    OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf" \
+    OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST="Authorization,Cookie,Accept,User-Agent,Content-Type" \
+    OTEL_BSP_SCHEDULE_DELAY=500 \
+    OTEL_BLRP_SCHEDULE_DELAY=500 \
+    opentelemetry-instrument python main.py
 ```
 
 </details>
@@ -210,11 +363,13 @@ opentelemetry-instrument python app.py
 Với Go, bạn cần khởi tạo OTel Provider trong file `main.go`. Tham khảo [Tài liệu chính thức của OpenTelemetry Go](https://opentelemetry.io/docs/instrumentation/go/getting-started/). Sau khi cấu hình xong, chạy bình thường với các biến môi trường:
 
 ```bash
-export OTEL_SERVICE_NAME="my-go-app"
+// Code Go sẽ tự động ăn theo các biến môi trường chuẩn của hệ điều hành
+export OTEL_SERVICE_NAME="go-backend-app"
 export OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4318"
+export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
 export OTEL_BSP_SCHEDULE_DELAY=500
-
-go run main.go
+// ... sau đó chạy file thực thi
+./my-go-app
 ```
 
 </details>
@@ -226,7 +381,7 @@ go run main.go
 Dù bạn dùng `axios`, `fetch`, hay `React Query`... Trace2Prompt đều tự động bắt trọn vẹn E2E Context nhờ cơ chế đánh chặn Native. Chỉ cần dán thẻ Script này vào thẻ `<head>` trong file `index.html` gốc của dự án:
 
 ```html
-<script src="http://localhost:4318/static/trace2prompt.js"></script>
+<script type="module" src="http://localhost:4319/trace2prompt.js"></script>
 ```
 
 </details>

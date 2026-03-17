@@ -153,20 +153,17 @@
         background: transparent !important;
       }
 
-      .whitespace-pre-wrap a,
-      pre a,
-      code a {
-        color: #38bdf8 !important;
+      /* Làm dịu màu link trong log (Màu xám nhạt Slate-400) */
+      #prompt-display a {
+        color: #94a3b8 !important;
         text-decoration: none;
-        border-bottom: 1px dashed #38bdf8;
+        border-bottom: 1px dotted #64748b;
         transition: all 0.2s ease-in-out;
       }
 
-      .whitespace-pre-wrap a:hover,
-      pre a:hover,
-      code a:hover {
-        color: #bae6fd !important;
-        border-bottom: 1px solid #bae6fd;
+      #prompt-display a:hover {
+        color: #cbd5e1 !important;
+        border-bottom: 1px solid #cbd5e1;
       }
     </style>
   </head>

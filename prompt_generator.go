@@ -75,7 +75,7 @@ var dicts = map[string]PromptDict{
 	"vi": {
 		Intro:            "Vui lòng phân tích lỗi hệ thống dựa trên thông tin E2E Runtime Context dưới đây:\n\n",
 		Env:              "\n### 🖥️ MÔI TRƯỜNG & HẠ TẦNG\n",
-		CpuMem:      "- Tiêu thụ tài nguyên: `CPU %.1f%% | RAM %d MB`\n",
+		CpuMem:      "- Tiêu thụ tài nguyên: `CPU %.1f%% | RAM %.0f MB`\n",
 		WaitingOtel:      "- 📊 CPU & JVM Memory: `⏳ Đang chờ OTel thu thập...`\n",
 		HttpCtx:          "\n### 🌐 HTTP REQUEST CONTEXT\n",
 		Frontend:         "\n### 👣 HÀNH TRÌNH FRONTEND (USER JOURNEY)\n",
@@ -118,7 +118,7 @@ var dicts = map[string]PromptDict{
 	"en": {
 		Intro:            "Please analyze the system error based on the E2E Runtime Context below:\n\n",
 		Env:              "\n### 🖥️ ENVIRONMENT & INFRASTRUCTURE\n",
-		CpuMem:      "- Process Metrics: `CPU %.1f%% | RAM %d MB`\n",
+		CpuMem:      "- Process Metrics: `CPU %.1f%% | RAM %.0f MB`\n",
 		WaitingOtel:      "- 📊 CPU & JVM Memory: `⏳ Waiting for OTel agent...`\n",
 		HttpCtx:          "\n### 🌐 HTTP REQUEST CONTEXT\n",
 		Frontend:         "\n### 👣 FRONTEND JOURNEY (USER JOURNEY)\n",
@@ -424,58 +424,74 @@ func buildEnvironmentContext(sb *strings.Builder, bestTrace *TraceRecord, hasBac
 	}
 }
 
-// 3. Logic to print Frontend journey (Clicks, API, WebSocket)
 // 3. Logic to print Frontend journey (Clicks, API, WebSocket, Console, Errors)
 func buildFrontendJourney(sb *strings.Builder, targetTraceID string, bestTrace *TraceRecord, hasBackend bool, t PromptDict) {
 	sb.WriteString(t.Frontend)
 	foundFrontend := false
-	apiPrinted := false 
+	apiPrinted := false
 
 	lastWsUrl := ""
 	lastWsType := ""
 	wsSpamCount := 0
-	
+
+	// 🌟 LẤY THỜI GIAN CỦA TRACE LÀM MỐC
+	var targetTime time.Time
+	for _, s := range spanBuffer {
+		if s.TraceID == targetTraceID {
+			targetTime = s.Timestamp
+			break
+		}
+	}
+
 	for i := len(spanBuffer) - 1; i >= 0; i-- {
 		s := spanBuffer[i]
 		timeStr := s.Timestamp.Format("15:04:05")
 
+		// 🌟 LOGIC CHÍNH NÂNG CẤP: FUZZY MATCH CHO TOÀN BỘ FRONTEND
+		// Nếu là cùng TraceID -> Chắc chắn lấy
+		// Nếu khác TraceID, nhưng xảy ra trong vòng 10 giây trước khi Backend lỗi -> Cũng lấy luôn!
+		isValidTimeContext := false
+		if !targetTime.IsZero() {
+			timeDiff := targetTime.Sub(s.Timestamp)
+			if timeDiff >= -2*time.Second && timeDiff <= 10*time.Second {
+				isValidTimeContext = true
+			}
+		}
+		
+		if s.TraceID != targetTraceID && !isValidTimeContext {
+			continue // Bỏ qua các sự kiện không liên quan hoặc quá cũ
+		}
+
 		// 1. CATCH WEBSOCKET EVENTS
 		if strings.HasPrefix(s.Name, "WS ") {
+			// ... (Giữ nguyên code phần Websocket của bạn) ...
 			url := s.Attributes["http.url"]
-			
 			if url == lastWsUrl && s.Name == lastWsType {
 				wsSpamCount++
 				continue
 			}
-
 			if wsSpamCount > 0 {
 				sb.WriteString(fmt.Sprintf("- 🔄 (skip %d duplicate %s messages)\n", wsSpamCount, lastWsType))
 				wsSpamCount = 0
 			}
-
-			payload := s.Attributes["messaging.payload"] // Sửa lại key cho đúng với JS gửi lên
-			icon := "📤" 
+			payload := s.Attributes["messaging.payload"]
+			icon := "📤"
 			if s.Name == "WS RECEIVE" { icon = "📥" }
-			
 			sb.WriteString(fmt.Sprintf("- [%s] %s `%s` %s\n", timeStr, icon, s.Name, fmt.Sprintf(t.WsAt, url)))
-			if payload != "" {
-				sb.WriteString(fmt.Sprintf(t.Payload, payload))
-			}
+			if payload != "" { sb.WriteString(fmt.Sprintf(t.Payload, payload)) }
 			foundFrontend = true
 			lastWsUrl = url
 			lastWsType = s.Name
-			continue 
+			continue
 		}
-		
+
 		// 2. CLICK EVENTS
 		if s.Name == "click" || strings.HasPrefix(s.Name, "Navigation") {
 			xpath := s.Attributes["target_xpath"]
-			if xpath == "" { xpath = s.Attributes["target_id"] } 
+			if xpath == "" { xpath = s.Attributes["target_id"] }
 			url := s.Attributes["http.url"]
-			
 			if url == "" { url = t.CurrentPage }
 			if xpath == "" { xpath = t.UnknownElem }
-			
 			sb.WriteString(fmt.Sprintf("- [%s] 🖱️ `CLICK` %s\n", timeStr, fmt.Sprintf(t.ClickAt, url, xpath)))
 			foundFrontend = true
 		}
@@ -484,7 +500,8 @@ func buildFrontendJourney(sb *strings.Builder, targetTraceID string, bestTrace *
 		if strings.Contains(s.Name, "CONSOLE_") {
 			msg := s.Attributes["console.message"]
 			if msg != "" {
-				sb.WriteString(fmt.Sprintf("- [%s] %s: `%s`\n", timeStr, s.Name, msg))
+				// Cắt bớt log dài để tránh spam
+				sb.WriteString(fmt.Sprintf("- [%s] %s: `%s`\n", timeStr, s.Name, truncateTextL(msg, 200, t)))
 				foundFrontend = true
 			}
 		}
@@ -492,26 +509,24 @@ func buildFrontendJourney(sb *strings.Builder, targetTraceID string, bestTrace *
 		// 4. FRONTEND JS CRASH & PROMISE REJECT
 		if strings.Contains(s.Name, "CRASH") || strings.Contains(s.Name, "REJECT") || strings.Contains(s.Name, "RESOURCE_ERROR") || s.Name == "EXCEPTION" {
 			errMsg := s.Attributes["error.message"]
-			if errMsg == "" { errMsg = s.Attributes["exception.message"] } // Fallback
+			if errMsg == "" { errMsg = s.Attributes["exception.message"] }
 			errStack := s.Attributes["error.stack"]
-			
 			sb.WriteString(fmt.Sprintf("- [%s] %s\n", timeStr, fmt.Sprintf(t.FrontendCrash, errMsg)))
-			if errStack != "" {
-				sb.WriteString(fmt.Sprintf(t.Error, truncateTextL(errStack, 300, t)))
-			}
+			if errStack != "" { sb.WriteString(fmt.Sprintf(t.Error, truncateTextL(errStack, 300, t))) }
 			foundFrontend = true
 		}
-		
+
 		// 5. FRONTEND API CALL
 		if !apiPrinted && !strings.Contains(s.Name, "CONSOLE_") && !strings.Contains(s.Name, "CRASH") && !strings.Contains(s.Name, "REJECT") && s.Name != "click" && s.Name != "EXCEPTION" && s.Name != "🖼️ RESOURCE_ERROR" {
 			url := s.Attributes["http.url"]
 			method := s.Attributes["http.request.method"]
-			if method == "" { method = s.Attributes["http.method"] } 
-			
+			if method == "" { method = s.Attributes["http.method"] }
+
 			if url != "" && method != "" {
 				isSameTrace := s.TraceID == targetTraceID
 				isFuzzyMatch := hasBackend && bestTrace.HttpUrl != "" && strings.Contains(url, bestTrace.HttpUrl)
 
+				// CHỈ IN RA NẾU TRÙNG KHỚP CHÍNH XÁC VỚI API ĐANG LỖI Ở BACKEND
 				if isSameTrace || isFuzzyMatch {
 					status := s.Attributes["http.response.status_code"]
 					if status == "" { status = s.Attributes["http.status_code"] }
@@ -519,52 +534,38 @@ func buildFrontendJourney(sb *strings.Builder, targetTraceID string, bestTrace *
 					resBody := s.Attributes["http.response.body"]
 					headers := s.Attributes["http.request.headers"]
 					userAgent := s.Attributes["http.user_agent"]
-					reqSize := s.Attributes["http.request.size"]  
-					resSize := s.Attributes["http.response.size"]  
-
+					reqSize := s.Attributes["http.request.size"]
+					resSize := s.Attributes["http.response.size"]
 					currentUrl := s.Attributes["page.current_url"]
 					networkStat := s.Attributes["network.status"]
 					viewport := s.Attributes["device.viewport"]
 
 					sb.WriteString(fmt.Sprintf("- [%s] %s\n", timeStr, fmt.Sprintf(t.FrontendApi, method, url, status)))
-					
 					if currentUrl != "" {
 						sb.WriteString(fmt.Sprintf("  - %s: `%s`\n", t.CurrentPage, currentUrl))
 						sb.WriteString(fmt.Sprintf("  - Network: `%s` | Screen: `%s`\n", networkStat, viewport))
 					}
-					if userAgent != "" {
-						sb.WriteString(fmt.Sprintf(t.Browser, userAgent))
-					}
-					if headers != "" && headers != "{}" {
-						sb.WriteString(fmt.Sprintf(t.Headers, truncateTextL(headers, 200, t)))
-					}
+					if userAgent != "" { sb.WriteString(fmt.Sprintf(t.Browser, userAgent)) }
+					if headers != "" && headers != "{}" { sb.WriteString(fmt.Sprintf(t.Headers, truncateTextL(headers, 200, t))) }
 					if reqBody != "" {
 						sizeInfo := ""
 						if reqSize != "" { sizeInfo = fmt.Sprintf(" (Size: %s)", reqSize) }
-						maskedReq := maskSensitiveData(reqBody)
-						sb.WriteString(fmt.Sprintf("  - 🔻 Request Body%s: %s\n", sizeInfo, prettyJSONL(maskedReq, t)))
+						sb.WriteString(fmt.Sprintf("  - 🔻 Request Body%s: %s\n", sizeInfo, prettyJSONL(maskSensitiveData(reqBody), t)))
 					}
 					if resBody != "" {
 						sizeInfo := ""
 						if resSize != "" { sizeInfo = fmt.Sprintf(" (Size: %s)", resSize) }
-						maskedRes := maskSensitiveData(resBody)
-						sb.WriteString(fmt.Sprintf("  - 🔺 Response Body%s: %s\n", sizeInfo, prettyJSONL(maskedRes, t)))
+						sb.WriteString(fmt.Sprintf("  - 🔺 Response Body%s: %s\n", sizeInfo, prettyJSONL(maskSensitiveData(resBody), t)))
 					}
-
 					foundFrontend = true
 					apiPrinted = true
 				}
 			}
 		}
 	}
-	
-	if wsSpamCount > 0 {
-		sb.WriteString(fmt.Sprintf("- 🔄 (Skip %d duplicate %s messages)\n", wsSpamCount, lastWsType))
-	}
 
-	if !foundFrontend {
-		sb.WriteString(t.NoFrontend)
-	}
+	if wsSpamCount > 0 { sb.WriteString(fmt.Sprintf("- 🔄 (Skip %d duplicate %s messages)\n", wsSpamCount, lastWsType)) }
+	if !foundFrontend { sb.WriteString(t.NoFrontend) }
 }
 
 // 4. Logic to print Backend Logs, Exceptions & Flame Graph
@@ -616,11 +617,47 @@ func buildBackendJourney(sb *strings.Builder, bestTrace *TraceRecord, t PromptDi
 
 // 5. Logic to print System Background Errors
 func buildSystemErrors(sb *strings.Builder, t PromptDict) {
-	if len(systemLogsBuffer) > 0 {
-		sb.WriteString(t.SystemErr)
-		sb.WriteString(t.SystemNote)
-		for _, sysErr := range systemLogsBuffer {
-			sb.WriteString("- " + sysErr + "\n")
+	if len(systemLogsBuffer) == 0 {
+		return
+	}
+	sb.WriteString(t.SystemErr)
+	sb.WriteString(t.SystemNote)
+	errorCount := make(map[string]int)
+	var errorOrder []string
+	var latestFullMsg = make(map[string]string)
+
+	for _, sysErr := range systemLogsBuffer {
+		sig := sysErr
+
+		if len(sysErr) > 11 && strings.HasPrefix(sysErr, "[") && sysErr[9] == ']' {
+			sig = sysErr[11:]
+		}
+
+		if errorCount[sig] == 0 {
+
+			errorOrder = append(errorOrder, sig)
+
+		}
+
+		errorCount[sig]++
+		latestFullMsg[sig] = sysErr 
+
+	}
+
+	startIndex := 0
+	if len(errorOrder) > 5 {
+		startIndex = len(errorOrder) - 5
+	}
+
+	for i := startIndex; i < len(errorOrder); i++ {
+		sig := errorOrder[i]
+		count := errorCount[sig]
+		fullMsg := latestFullMsg[sig]
+
+		if count > 1 {
+			sb.WriteString(fmt.Sprintf("- %s (⚠️ Lặp lại %d lần)\n", fullMsg, count))
+		} else {
+			sb.WriteString(fmt.Sprintf("- %s\n", fullMsg))
 		}
 	}
 }

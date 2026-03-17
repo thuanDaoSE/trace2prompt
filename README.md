@@ -81,10 +81,6 @@ sequenceDiagram
 
 Trace2Prompt sẽ sinh ra một cấu trúc hoàn hảo như sau (bạn chỉ việc Copy & Paste):
 
-<summary><b>  Prompt báo lỗi user không có quyền truy cập</b>
-</summary>
-<br>
-
 ```text
 Please analyze the system error based on the E2E Runtime Context below:
 

@@ -268,6 +268,12 @@ Trace2Prompt uses the international OpenTelemetry (OTLP) standard, so it support
 - **Monolith Project:** You just need to set environment variables and attach the agent to your single Backend project.
 - **Microservices Project:** Even better! You just need to repeat this agent attachment process for **all** your Backend services (remember to change the `OTEL_SERVICE_NAME` for each one). Trace2Prompt will automatically link (Distributed Tracing) cross-API calls into a complete flow!
 
+> ✅ **Backend Verification:**
+>
+> 1. Start your Backend application.
+> 2. Make a simple API request to your Backend (e.g., call a GET endpoint).
+> 3. Open the Trace2Prompt Web UI (`http://localhost:4319`). If you see the request log appear there, the agent is successfully attached!
+
 👇 **Click on your stack below to see integration instructions:**
 
 <details>
@@ -378,9 +384,7 @@ export OTEL_BSP_SCHEDULE_DELAY=500
 
 </details>
 
-<details>
-<summary><b>⚛️ Frontend (React, Vue, Next.js, Vanilla JS)</b></summary>
-<br>
+### Step 3: Connect Frontend (Browser UI Journey)
 
 Whether you use `axios`, `fetch`, or `React Query`... Trace2Prompt will automatically capture complete E2E Context thanks to Native interception mechanism. Just paste this Script tag into the `<head>` tag in your project's root `index.html` file:
 
@@ -388,9 +392,9 @@ Whether you use `axios`, `fetch`, or `React Query`... Trace2Prompt will automati
 <script type="module" src="http://localhost:4319/trace2prompt.js"></script>
 ```
 
-</details>
+> ✅ Verification: Open your browser's Developer Tools (Press F12 -> Console). If you see the message 🟢 [Trace2Prompt] E2E Sensor FULLY INITIALIZED!, the Frontend is successfully connected.
 
-### Step 3: Experience the AI magic!
+### Step 4: Experience the AI magic!
 
 1. Interact with your app and intentionally create an error (e.g: Payment error 500).
 2. Open browser to `http://localhost:4319`.

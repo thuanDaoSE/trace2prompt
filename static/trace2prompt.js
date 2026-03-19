@@ -1,5 +1,4 @@
 
-console.log(T2P_STRINGS[(window.TRACE2PROMPT_LANG || 'en').toLowerCase()]?.initStart || T2P_STRINGS['en'].initStart);
 
 // =============================================
 // i18n: set window.TRACE2PROMPT_LANG = 'vi'
@@ -33,6 +32,9 @@ const T2P_STRINGS = {
   },
 };
 const T2P = T2P_STRINGS[T2P_LANG] || T2P_STRINGS['en'];
+
+console.log(T2P_STRINGS[(window.TRACE2PROMPT_LANG || 'en').toLowerCase()]?.initStart || T2P_STRINGS['en'].initStart);
+
 
 const API_URL = 'http://localhost:4318/v1/frontend-spans';
 const originalFetch = window.fetch; 

@@ -222,12 +222,9 @@ TraceID: `6464d81b63cbc1de7184d0c90ce53891`
 
 ### Step 1: Start Trace2Prompt
 
-You can run Trace2Prompt in one of 3 ways:
+You can run Trace2Prompt in one of 2 ways:
 
-**Method 1: Download pre-built binary (Fastest)**
-Download the binary file corresponding to your OS from the [Releases](https://github.com/thuanDaoSE/trace2prompt/releases/latest) page and double-click to run.
-
-**Method 2: Build with Docker (No Go installation needed)**
+**Method 1: Build with Docker (No Go installation needed)**
 If you have Docker, you can "borrow" Docker to compile the source code into a local executable cleanly:
 
 ```bash
@@ -243,7 +240,7 @@ docker run --rm -v ${PWD}:/app -w /app golang:1.21 go build -o trace2prompt.exe 
 .\trace2prompt.exe
 ```
 
-**Method 3: Build with Go (If you have Go installed)**
+**Method 2: Build with Go (If you have Go installed)**
 
 ```bash
 go build -o trace2prompt main.go otel_handlers.go prompt_generator.go mcp_server.go

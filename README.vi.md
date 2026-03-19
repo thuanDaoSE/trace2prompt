@@ -222,12 +222,9 @@ TraceID: `6464d81b63cbc1de7184d0c90ce53891`
 
 ### Bước 1: Khởi động Trace2Prompt
 
-Bạn có thể chạy Trace2Prompt bằng 1 trong 3 cách sau:
+Bạn có thể chạy Trace2Prompt bằng 1 trong 2 cách sau:
 
-**Cách 1: Tải file chạy sẵn (Nhanh nhất)**
-Tải file nhị phân (Binary) tương ứng với hệ điều hành của bạn tại trang [Releases](https://github.com/thuanDaoSE/trace2prompt/releases/latest) và click đúp để chạy.
-
-**Cách 2: Build bằng Docker (Không cần cài Go)**
+**Cách 1: Build bằng Docker (Không cần cài Go)**
 Nếu máy bạn có Docker, bạn có thể "mượn" Docker để biên dịch mã nguồn thành file chạy cục bộ một cách sạch sẽ:
 
 ```bash
@@ -243,7 +240,7 @@ docker run --rm -v ${PWD}:/app -w /app golang:1.21 go build -o trace2prompt.exe 
 .\trace2prompt.exe
 ```
 
-**Cách 3: Tự Build bằng Go (Nếu máy đã cài Go)**
+**Cách 2: Tự Build bằng Go (Nếu máy đã cài Go)**
 
 ```bash
 go build -o trace2prompt main.go otel_handlers.go prompt_generator.go mcp_server.go

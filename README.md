@@ -20,6 +20,10 @@ And the result? AI gives generic, cliché answers, or worse, **makes up incorrec
 Furthermore, in modern systems, **logs are often scattered everywhere**: Frontend reports errors in the browser console, Backend throws exceptions in the terminal, SQL gets stuck in the database.
 To help AI understand, you have to manually piece together from 3-4 different places. This process of collecting scattered logs is extremely time-consuming and makes developers "lazy" about using AI to debug complex errors!
 
+## 🎬 See it in Action (27s Demo)
+
+https://github.com/user-attachments/assets/4ee35c7e-06fd-4695-acd6-b6e109975786
+
 ## 💡 Solution: Trace2Prompt
 
 **Trace2Prompt** is an extremely lightweight background daemon that acts as a data collection station for the OpenTelemetry (OTLP) standard.

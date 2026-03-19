@@ -596,7 +596,7 @@ http.HandleFunc("/v1/traces", func(w http.ResponseWriter, r *http.Request) {
 			prompt := latestPrompt
 			mu.Unlock()
 			if prompt == "" {
-				w.Write([]byte("No errors yet. Please test the application."))
+				w.Write([]byte(getServerDict().NoErrorsYet))
 			} else {
 				w.Write([]byte(prompt))
 			}
@@ -621,7 +621,7 @@ http.HandleFunc("/v1/traces", func(w http.ResponseWriter, r *http.Request) {
 			mu.Unlock()
 
 			if prompt == "" {
-				prompt = "⏳ Waiting for system to catch errors... (Try calling API that throws 500 error)"
+				prompt = getServerDict().WaitingForErrors
 			}
 
 			// HTML + CSS + JS interface embedded directly in Go

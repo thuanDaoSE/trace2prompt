@@ -178,7 +178,7 @@ func buildTreeStr(node *SpanNode, depth int, sb *strings.Builder) {
 	if node.ExtHttpUrl != "" {
 		urlLower := strings.ToLower(node.ExtHttpUrl)
 		if strings.Contains(urlLower, "keycloak") || strings.Contains(urlLower, "auth0") || strings.Contains(urlLower, "cognito") {
-			sb.WriteString(fmt.Sprintf("%s- [%d ms] %s🔐 [IAM AUTH] `%s %s`\n", prefix, node.DurationMs, serviceTag, node.ExtHttpMethod, node.ExtHttpUrl))
+			sb.WriteString(fmt.Sprintf("%s- [%d ms] %s%s `%s %s`\n", prefix, node.DurationMs, serviceTag, getServerDict().IamAuth, node.ExtHttpMethod, node.ExtHttpUrl))
 			return // Stop here, don't print the default EXTERNAL API block below
 		}
 	}
@@ -213,10 +213,10 @@ func buildTreeStr(node *SpanNode, depth int, sb *strings.Builder) {
 
 	if node.SQL != "" {
 		if node.GraphqlOperation != "" {
-			sb.WriteString(fmt.Sprintf("%s- [%d ms] %s%s %s Operation:\n%s    ```graphql\n%s    %s\n%s    ```\n", prefix, node.DurationMs, serviceTag, icon, systemName, prefix, prefix, node.SQL, prefix))
+			sb.WriteString(fmt.Sprintf("%s- [%d ms] %s%s %s %s\n%s    ```graphql\n%s    %s\n%s    ```\n", prefix, node.DurationMs, serviceTag, icon, systemName, getServerDict().GraphqlOp, prefix, prefix, node.SQL, prefix))
 		} else if node.DbSystem == "redis" || node.DbSystem == "memcached" {
 		
-			sb.WriteString(fmt.Sprintf("%s- [%d ms] %s%s %s Command:\n%s    ```text\n%s    %s\n%s    ```\n", prefix, node.DurationMs, serviceTag, icon, systemName, prefix, prefix, node.SQL, prefix))
+			sb.WriteString(fmt.Sprintf("%s- [%d ms] %s%s %s %s\n%s    ```text\n%s    %s\n%s    ```\n", prefix, node.DurationMs, serviceTag, icon, systemName, getServerDict().RedisCmd, prefix, prefix, node.SQL, prefix))
 		} else if node.DbSystem == "mongodb" || node.DbSystem == "elasticsearch" {
 			// NoSQL use JSON + Pretty Print
 			prettyJson := node.SQL
@@ -225,15 +225,15 @@ func buildTreeStr(node *SpanNode, depth int, sb *strings.Builder) {
 				prettyJson = buf.String()
 			}
 			prettyJson = strings.ReplaceAll(prettyJson, "\n", "\n"+prefix+"    ")
-			sb.WriteString(fmt.Sprintf("%s- [%d ms] %s%s %s Query:\n%s    ```json\n%s    %s\n%s    ```\n", prefix, node.DurationMs, serviceTag, icon, systemName, prefix, prefix, prettyJson, prefix))
+			sb.WriteString(fmt.Sprintf("%s- [%d ms] %s%s %s %s\n%s    ```json\n%s    %s\n%s    ```\n", prefix, node.DurationMs, serviceTag, icon, systemName, getServerDict().MongoQuery, prefix, prefix, prettyJson, prefix))
 			
 		} else {
 			// SQL Relational
 			if icon == "⚙️" { icon = "🗄️"; systemName = "[DB]" } // Fallback
-			sb.WriteString(fmt.Sprintf("%s- [%d ms] %s%s %s Query:\n%s    ```sql\n%s    %s\n%s    ```\n", prefix, node.DurationMs, serviceTag, icon, systemName, prefix, prefix, formatSQL(node.SQL), prefix))
+			sb.WriteString(fmt.Sprintf("%s- [%d ms] %s%s %s %s\n%s    ```sql\n%s    %s\n%s    ```\n", prefix, node.DurationMs, serviceTag, icon, systemName, getServerDict().SqlQuery, prefix, prefix, formatSQL(node.SQL), prefix))
 		}
 	} else if node.ExtHttpUrl != "" {
-		sb.WriteString(fmt.Sprintf("%s- [%d ms] %s🌍 [EXTERNAL API] `%s %s`\n", prefix, node.DurationMs, serviceTag, node.ExtHttpMethod, node.ExtHttpUrl))
+		sb.WriteString(fmt.Sprintf("%s- [%d ms] %s%s `%s %s`\n", prefix, node.DurationMs, serviceTag, getServerDict().ExternalApi, node.ExtHttpMethod, node.ExtHttpUrl))
 	} else {
 		displayName := node.Name
 		if systemName != "" { displayName = systemName + " " + node.Name }
@@ -242,12 +242,12 @@ func buildTreeStr(node *SpanNode, depth int, sb *strings.Builder) {
 	
 	// Display additional Broker information
 	if node.MsgSystem != "" {
-		action := "INTERACT WITH"
+		action := getServerDict().InteractWith
 		if node.MsgOperation != "" { action = node.MsgOperation }
-		topic := "Unknown Topic"
+		topic := getServerDict().UnknownTopic
 		if node.MsgDestName != "" { topic = node.MsgDestName }
 		
-		sb.WriteString(fmt.Sprintf("%s  - %s 🎯 Topic/Queue: `%s`\n", indent, action, topic))
+		sb.WriteString(fmt.Sprintf("%s  - %s %s `%s`\n", indent, action, getServerDict().TopicQueue, topic))
 	}
 
 	var repeatCount int = 0

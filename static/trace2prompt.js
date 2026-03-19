@@ -1,5 +1,5 @@
 
-console.log("🟢 [Trace2Prompt] Initializing E2E Sensor (Ultimate Edition)...");
+console.log(T2P_STRINGS[(window.TRACE2PROMPT_LANG || 'en').toLowerCase()]?.initStart || T2P_STRINGS['en'].initStart);
 
 // =============================================
 // i18n: set window.TRACE2PROMPT_LANG = 'vi'
@@ -8,16 +8,28 @@ console.log("🟢 [Trace2Prompt] Initializing E2E Sensor (Ultimate Edition)...")
 const T2P_LANG = (window.TRACE2PROMPT_LANG || 'en').toLowerCase();
 const T2P_STRINGS = {
   vi: {
-    truncated:      '\n\n... [TRUNCATED: CONTENT TOO LARGE]',
-    networkError:   'Network Error: ERR_CONNECTION_REFUSED or TIMEOUT. Unable to connect to Server.',
-    binaryData:     '[Binary/Blob Data]',
-    initDone:       '🟢 [Trace2Prompt] E2E Sensor FULLY INITIALIZED!',
+    truncated:      '\n\n... [CẮT BỚT: NỘI DUNG QUÁ DÀI]',
+    networkError:   'Lỗi Mạng: ERR_CONNECTION_REFUSED hoặc TIMEOUT. Không thể kết nối tới Server.',
+    binaryData:     '[Dữ liệu Nhị phân/Blob]',
+    initDone:       '🟢 [Trace2Prompt] E2E Sensor ĐÃ KHỞI TẠO HOÀN TOÀN!',
+    initStart:      '🟢 [Trace2Prompt] Đang khởi tạo E2E Sensor (Ultimate Edition)...',
+    fileUpload:     '[TẢI FILE LÊN] Tên: ',
+    fileType:       ' | Loại: ',
+    fileSize:       ' | Kích thước: ',
+    object:         '[Đối tượng]',
+    wsConnError:    'Lỗi Kết nối WebSocket',
   },
   en: {
     truncated:      '\n\n... [TRUNCATED: CONTENT TOO LARGE]',
     networkError:   'Network Error: ERR_CONNECTION_REFUSED or TIMEOUT. Unable to connect to Server.',
     binaryData:     '[Binary/Blob Data]',
     initDone:       '🟢 [Trace2Prompt] E2E Sensor FULLY INITIALIZED!',
+    initStart:      '🟢 [Trace2Prompt] Initializing E2E Sensor (Ultimate Edition)...',
+    fileUpload:     '[FILE UPLOAD] Name: ',
+    fileType:       ' | Type: ',
+    fileSize:       ' | Size: ',
+    object:         '[Object]',
+    wsConnError:    'WebSocket Connection Error',
   },
 };
 const T2P = T2P_STRINGS[T2P_LANG] || T2P_STRINGS['en'];
@@ -74,7 +86,7 @@ const originalConsole = {
         let msg = args.map(a => {
             if (a instanceof Error) return a.stack || a.message;
             if (typeof a === 'object') {
-                try { return JSON.stringify(a).substring(0, 300); } catch(e) { return '[Object]'; }
+                try { return JSON.stringify(a).substring(0, 300); } catch(e) { return T2P.object; }
             }
             return String(a);
         }).join(' ');
@@ -141,7 +153,7 @@ function extractFormData(body) {
     for (let [key, value] of body.entries()) {
         if (value instanceof File) {
             // If it's a File -> Only get Metadata, skip content
-            obj[key] = `[FILE UPLOAD] Name: ${value.name} | Type: ${value.type} | Size: ${formatBytes(value.size)}`;
+            obj[key] = `${T2P.fileUpload}${value.name}${T2P.fileType}${value.type}${T2P.fileSize}${formatBytes(value.size)}`;
             totalBytes += value.size;
         } else {
             // If it's normal Text in Form
@@ -277,7 +289,7 @@ XMLHttpRequest.prototype.send = function(body) {
             } else if (this.responseType === 'json') {
                 resText = JSON.stringify(this.response);
             } else {
-                resText = "[Binary/Blob Data]";
+                resText = T2P.binaryData;
             }
         } catch(e) {}
 
@@ -382,7 +394,7 @@ window.fetch = async function(...args) {
         // Internal function to send WebSocket Span to Backend
         function reportWsEvent(op, payload, isError) {
             const spanId = generateId(8);
-            let safePayload = maskSensitiveBody(typeof payload === 'string' ? payload : '[Binary Data]');
+            let safePayload = maskSensitiveBody(typeof payload === 'string' ? payload : T2P.binaryData);
             
             let span = {
                 TraceID: wsTraceId,
@@ -419,7 +431,7 @@ window.fetch = async function(...args) {
 
         // 3. Catch Errors and Connection Close
         ws.addEventListener('error', function(event) {
-            reportWsEvent('ERROR', 'WebSocket Connection Error', true);
+            reportWsEvent('ERROR', T2P.wsConnError, true);
         });
         ws.addEventListener('close', function(event) {
             reportWsEvent('CLOSE', `Code: ${event.code}`, !event.wasClean);

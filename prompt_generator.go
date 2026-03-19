@@ -68,6 +68,19 @@ type PromptDict struct {
 	ReceivedFrontendSpan string // Printed when a frontend span arrives
 	NewErrorCaught      string // Printed when a new E2E error is detected
 	N1DetectedBuild     string // N+1 label inside buildTreeStr (not prompt)
+	RepeatedCount       string
+	NoErrorsYet         string
+	WaitingForErrors    string
+	IamAuth             string
+	ExternalApi         string
+	GraphqlOp           string
+	RedisCmd            string
+	MongoQuery          string
+	SqlQuery            string
+	InteractWith        string
+	TopicQueue          string
+	UnknownTopic        string
+	MCPServerNotResp    string
 }
 
 // Create 2 languages
@@ -114,6 +127,19 @@ var dicts = map[string]PromptDict{
 		ReceivedFrontendSpan: "🔥 Nhận Span FRONTEND: %-15s | TraceID: %s",
 		NewErrorCaught:       "🚨 Phát hiện lỗi E2E mới! (TraceID: %s)",
 		N1DetectedBuild:      "%s⚠️ [N+1 DETECTED] ^ Truy vấn DB trên bị gọi trong vòng lặp %d lần!\n",
+		RepeatedCount:        "- %s (⚠️ Lặp lại %d lần)\n",
+		NoErrorsYet:          "Chưa có lỗi nào. Vui lòng test ứng dụng.",
+		WaitingForErrors:     "⏳ Đang chờ hệ thống bắt lỗi... (Thử gọi API trả về lỗi 500)",
+		IamAuth:              "🔐 [IAM AUTH]",
+		ExternalApi:          "🌍 [EXTERNAL API]",
+		GraphqlOp:            "Operation:",
+		RedisCmd:             "Command:",
+		MongoQuery:           "Query:",
+		SqlQuery:             "Query:",
+		InteractWith:         "GIAO TIẾP VỚI",
+		TopicQueue:           "🎯 Topic/Queue:",
+		UnknownTopic:         "Topic không xác định",
+		MCPServerNotResp:     "⚠️ Trace2Prompt Server không phản hồi. Vui lòng kiểm tra xem Trace2Prompt.exe có đang chạy không, hoặc nhấn Enter trên màn hình đen nếu nó bị treo.",
 	},
 	"en": {
 		Intro:            "Please analyze the system error based on the E2E Runtime Context below:\n\n",
@@ -157,6 +183,19 @@ var dicts = map[string]PromptDict{
 		ReceivedFrontendSpan: "🔥 Received FRONTEND Span: %-15s | TraceID: %s",
 		NewErrorCaught:       "🚨 CAUGHT NEW E2E ERROR! (TraceID: %s)",
 		N1DetectedBuild:      "%s⚠️ [N+1 DETECTED] ^ The above DB query is called in a loop %d times!\n",
+		RepeatedCount:        "- %s (⚠️ Repeated %d times)\n",
+		NoErrorsYet:          "No errors yet. Please test the application.",
+		WaitingForErrors:     "⏳ Waiting for system to catch errors... (Try calling API that throws 500 error)",
+		IamAuth:              "🔐 [IAM AUTH]",
+		ExternalApi:          "🌍 [EXTERNAL API]",
+		GraphqlOp:            "Operation:",
+		RedisCmd:             "Command:",
+		MongoQuery:           "Query:",
+		SqlQuery:             "Query:",
+		InteractWith:         "INTERACT WITH",
+		TopicQueue:           "🎯 Topic/Queue:",
+		UnknownTopic:         "Unknown Topic",
+		MCPServerNotResp:     "⚠️ Trace2Prompt Server not responding. Please check if you have enabled Trace2Prompt.exe running in background, or press Enter on the black screen if it's frozen.",
 	},
 }
 
@@ -655,7 +694,7 @@ func buildSystemErrors(sb *strings.Builder, t PromptDict) {
 		fullMsg := latestFullMsg[sig]
 
 		if count > 1 {
-			sb.WriteString(fmt.Sprintf("- %s (⚠️ Lặp lại %d lần)\n", fullMsg, count))
+			sb.WriteString(fmt.Sprintf(t.RepeatedCount, fullMsg, count))
 		} else {
 			sb.WriteString(fmt.Sprintf("- %s\n", fullMsg))
 		}

@@ -51,7 +51,7 @@ func runMCPServer() {
 			resp, err := client.Get("http://localhost:4319/latest")
 			var text string
 			if err != nil {
-				text = "⚠️ Trace2Prompt Server not responding. Please check if you have enabled Trace2Prompt.exe running in background, or press Enter on the black screen if it's frozen."
+				text = getServerDict().MCPServerNotResp
 			} else {
 				body, _ := io.ReadAll(resp.Body)
 				resp.Body.Close()

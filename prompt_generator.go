@@ -1,26 +1,11 @@
 package main
 
 import (
-    "fmt"
-    "strings"
-    "time"
 	"bytes"
 	"encoding/json"
-	"regexp"
-)
-
-// Initialize Regex once for performance optimization
-var (
-	// Catch Token/Key strings in URLs or text (Example: Bearer eyJ..., token=12345)
-	tokenRegex = regexp.MustCompile(`(?i)(Bearer\s+|token=|api_key=|secret=)[A-Za-z0-9\-\._~+/]+=*`)
-	
-	// Catch Email (Example: admin@gmail.com -> [EMAIL_HIDDEN])
-	emailRegex = regexp.MustCompile(`(?i)[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}`)
-	
-	// Catch sensitive data in SQL commands (Example: password = 'abc', or VALUES ('abc'))
-	sqlSensitiveRegex = regexp.MustCompile(`(?i)(password|passwd|secret|token|api_key|cvv|credit_card)[\s=:]+('[^']+'|"[^"]+")`)
-
-	signedUrlRegex = regexp.MustCompile(`(https?://[^\s"'<>]+)(\?(X-Amz-Algorithm|AWSAccessKeyId|Signature|Expires|X-Goog-Algorithm)[^\s"'<>]*)`)
+	"fmt"
+	"strings"
+	"time"
 )
 
 // Dictionary structure declaration
@@ -54,72 +39,72 @@ type PromptDict struct {
 	NoException      string
 	SystemErr        string
 	SystemNote       string
-	Truncated        string  // Suffix appended when text is truncated
-	TruncatedVI      string  // Vietnamese truncation marker used in prettyJSON
-	FrameworkHidden  string  // Stacktrace filter label
-	NoBackendWarning string  // Warning when no backend trace found
-	AuthAttached     string  // Auth token present label
-	AuthEmpty        string  // Auth token absent label
+	Truncated        string // Suffix appended when text is truncated
+	TruncatedVI      string // Vietnamese truncation marker used in prettyJSON
+	FrameworkHidden  string // Stacktrace filter label
+	NoBackendWarning string // Warning when no backend trace found
+	AuthAttached     string // Auth token present label
+	AuthEmpty        string // Auth token absent label
 	// Server-side console log messages
-	StartupMsg          string // Printed on startup
-	StartupHint         string // Printed as hint on startup
-	MetricsUpdated      string // Printed when metrics are updated
-	ReceivedSpan        string // Printed when a backend span arrives
+	StartupMsg           string // Printed on startup
+	StartupHint          string // Printed as hint on startup
+	MetricsUpdated       string // Printed when metrics are updated
+	ReceivedSpan         string // Printed when a backend span arrives
 	ReceivedFrontendSpan string // Printed when a frontend span arrives
-	NewErrorCaught      string // Printed when a new E2E error is detected
-	N1DetectedBuild     string // N+1 label inside buildTreeStr (not prompt)
-	RepeatedCount       string
-	NoErrorsYet         string
-	WaitingForErrors    string
-	IamAuth             string
-	ExternalApi         string
-	GraphqlOp           string
-	RedisCmd            string
-	MongoQuery          string
-	SqlQuery            string
-	InteractWith        string
-	TopicQueue          string
-	UnknownTopic        string
-	MCPServerNotResp    string
+	NewErrorCaught       string // Printed when a new E2E error is detected
+	N1DetectedBuild      string // N+1 label inside buildTreeStr (not prompt)
+	RepeatedCount        string
+	NoErrorsYet          string
+	WaitingForErrors     string
+	IamAuth              string
+	ExternalApi          string
+	GraphqlOp            string
+	RedisCmd             string
+	MongoQuery           string
+	SqlQuery             string
+	InteractWith         string
+	TopicQueue           string
+	UnknownTopic         string
+	MCPServerNotResp     string
 }
 
 // Create 2 languages
 var dicts = map[string]PromptDict{
 	"vi": {
-		Intro:            "Vui lòng phân tích lỗi hệ thống dựa trên thông tin E2E Runtime Context dưới đây:\n\n",
-		Env:              "\n### 🖥️ MÔI TRƯỜNG & HẠ TẦNG\n",
-		CpuMem:      "- Tiêu thụ tài nguyên: `CPU %.1f%% | RAM %.0f MB`\n",
-		WaitingOtel:      "- 📊 CPU & JVM Memory: `⏳ Đang chờ OTel thu thập...`\n",
-		HttpCtx:          "\n### 🌐 HTTP REQUEST CONTEXT\n",
-		Frontend:         "\n### 👣 HÀNH TRÌNH FRONTEND (USER JOURNEY)\n",
-		Browser:          "  - 💻 Trình duyệt: `%s`\n",
-		BackendLog:       "\n### 🛤️ HÀNH TRÌNH BACKEND (LOGS)\n",
-		FlameGraph:       "\n### ⏳ THỨ TỰ THỰC THI & SQL (FLAME GRAPH)\n",
-		N1Warning:        "%s⚠️ [N+1 DETECTED] ^ Lệnh DB trên bị vòng lặp gọi %d lần liên tục!\n",
-		WsAt:             "tại `%s`",
-		Payload:          "  - Payload: `%s`\n",
-		CurrentPage:      "Trang hiện tại",
-		UnknownElem:      "Phần tử không xác định",
-		ClickAt:          "tại `%s` (Phần tử: `%s`)",
-		FrontendCrash:    "🛑 `FRONTEND CRASH`:\n  - Lỗi: `%s`\n",
-		Error:            "  - Trace: `%s`\n",
-		FrontendApi:      "🌐 `FRONTEND GỌI API` `%s %s` -> Trạng thái: `%s`",
-		Status:           "  - 🎫 Headers: `%s`\n",
-		Headers:          "  - 🎫 Headers: `%s`\n",
-		ReqBody:          "  - 🔻 Request Body: %s\n",
-		ResBody:          "  - 🔺 Response Body: %s\n",
-		NoFrontend:       "- (Không ghi nhận được sự kiện Frontend nào. Vui lòng kiểm tra F12.)\n",
-		NoLogs:           "- (Không có log info/warn nào được in ra trước khi lỗi)\n",
-		BackendExc:       "\n### 🛑 BACKEND EXCEPTION STACKTRACE\n",
-		NoException:      "- (Backend không văng Exception)\n",
-		SystemErr:        "\n### ⚙️ SYSTEM BACKGROUND ERRORS (LỖI HỆ THỐNG GẦN ĐÂY)\n",
-		SystemNote:       "> Chú ý: Các lỗi này sinh ra từ Background Threads (RabbitMQ, HikariCP, Memory...) và có thể là nguyên nhân gốc rễ gây ra lỗi hoặc ảnh hưởng tới Request trên.\n",
-		Truncated:        "... [Đã cắt bớt do quá dài]",
-		TruncatedVI:      "... [ĐÃ CẮT BỚT",
-		FrameworkHidden:  "\t... [các lời gọi nội bộ framework đã ẩn]",
-		NoBackendWarning: "\n⚠️ [CẢNH BÁO] Không nhận được dữ liệu Flame Graph từ Backend (OTel Agent có thể bị trễ 5 giây, hoặc đây là request chỉ có Frontend).\n",
-		AuthAttached:     "[TOKEN/COOKIE ĐÃ GỬI]",
-		AuthEmpty:        "[TRỐNG - Không có Token/Cookie]",
+		Intro:                "Vui lòng phân tích lỗi hệ thống dựa trên thông tin E2E Runtime Context dưới đây:\n\n",
+		Env:                  "\n### 🖥️ MÔI TRƯỜNG & HẠ TẦNG\n",
+		CpuMem:               "- Tiêu thụ tài nguyên: `CPU %.1f%% | RAM %.0f MB`\n",
+		WaitingOtel:          "- 📊 CPU & JVM Memory: `⏳ Đang chờ OTel thu thập...`\n",
+		HttpCtx:              "\n### 🌐 HTTP REQUEST CONTEXT\n",
+		Frontend:             "\n### 👣 HÀNH TRÌNH FRONTEND (USER JOURNEY)\n",
+		Browser:              "  - 💻 Trình duyệt: `%s`\n",
+		BackendLog:           "\n### 🛤️ HÀNH TRÌNH BACKEND (LOGS)\n",
+		FlameGraph:           "\n### ⏳ THỨ TỰ THỰC THI & SQL (FLAME GRAPH)\n",
+		N1Warning:            "%s⚠️ [N+1 DETECTED] ^ Lệnh DB trên bị vòng lặp gọi %d lần liên tục!\n",
+		WsAt:                 "tại `%s`",
+		Payload:              "  - Payload: `%s`\n",
+		CurrentPage:          "Trang hiện tại",
+		UnknownElem:          "Phần tử không xác định",
+		ClickAt:              "tại `%s` (Phần tử: `%s`)",
+		FrontendCrash:        "🛑 `FRONTEND CRASH`:\n  - Lỗi: `%s`\n",
+		Error:                "  - Trace: `%s`\n",
+		FrontendApi:          "🌐 `FRONTEND GỌI API` `%s %s` -> Trạng thái: `%s`",
+		Status:               "  - 🎫 Headers: `%s`\n",
+		Headers:              "  - 🎫 Headers: `%s`\n",
+		ReqBody:              "  - 🔻 Request Body: %s\n",
+		ResBody:              "  - 🔺 Response Body: %s\n",
+		NoFrontend:           "- (Không ghi nhận được sự kiện Frontend nào. Vui lòng kiểm tra F12.)\n",
+		NoLogs:               "- (Không có log info/warn nào được in ra trước khi lỗi)\n",
+		BackendExc:           "\n### 🛑 BACKEND EXCEPTION STACKTRACE\n",
+		NoException:          "- (Backend không văng Exception)\n",
+		SystemErr:            "\n### ⚙️ SYSTEM BACKGROUND ERRORS (LỖI HỆ THỐNG GẦN ĐÂY)\n",
+		SystemNote:           "> Chú ý: Các lỗi này sinh ra từ Background Threads (RabbitMQ, HikariCP, Memory...) và có thể là nguyên nhân gốc rễ gây ra lỗi hoặc ảnh hưởng tới Request trên.\n",
+		Truncated:            "... [Đã cắt bớt do quá dài]",
+		TruncatedVI:          "... [ĐÃ CẮT BỚT",
+		FrameworkHidden:      "\t... [các lời gọi nội bộ framework đã ẩn]",
+		NoBackendWarning:     "\n⚠️ [CẢNH BÁO] Không nhận được dữ liệu Flame Graph từ Backend (OTel Agent có thể bị trễ 5 giây, hoặc đây là request chỉ có Frontend).\n",
+		AuthAttached:         "[TOKEN/COOKIE ĐÃ GỬI]",
+		AuthEmpty:            "[TRỐNG - Không có Token/Cookie]",
 		StartupMsg:           "🚀 Trace2Prompt (The AI Fixer) đang chạy nền trên cổng 4318...",
 		StartupHint:          "👉 Cứ code bình thường. Khi có lỗi, tôi sẽ BÍP ngay và đẩy thẳng vào AI!",
 		MetricsUpdated:       "📊 [Metrics] Đã cập nhật trạng thái RAM/CPU mới nhất!",
@@ -142,40 +127,40 @@ var dicts = map[string]PromptDict{
 		MCPServerNotResp:     "⚠️ Trace2Prompt Server không phản hồi. Vui lòng kiểm tra xem Trace2Prompt.exe có đang chạy không, hoặc nhấn Enter trên màn hình đen nếu nó bị treo.",
 	},
 	"en": {
-		Intro:            "Please analyze the system error based on the E2E Runtime Context below:\n\n",
-		Env:              "\n### 🖥️ ENVIRONMENT & INFRASTRUCTURE\n",
-		CpuMem:      "- Process Metrics: `CPU %.1f%% | RAM %.0f MB`\n",
-		WaitingOtel:      "- 📊 CPU & JVM Memory: `⏳ Waiting for OTel agent...`\n",
-		HttpCtx:          "\n### 🌐 HTTP REQUEST CONTEXT\n",
-		Frontend:         "\n### 👣 FRONTEND JOURNEY (USER JOURNEY)\n",
-		Browser:          "  - 💻 Browser: `%s`\n",
-		BackendLog:       "\n### 🛤️ BACKEND JOURNEY (LOGS)\n",
-		FlameGraph:       "\n### ⏳ EXECUTION ORDER & SQL (FLAME GRAPH)\n",
-		N1Warning:        "%s⚠️ [N+1 DETECTED] ^ The above DB query is called in a loop %d times!\n",
-		WsAt:             "at `%s`",
-		Payload:          "  - Payload: `%s`\n",
-		CurrentPage:      "Current page",
-		UnknownElem:      "Unknown Element",
-		ClickAt:          "at `%s` (Element: `%s`)",
-		FrontendCrash:    "🛑 `FRONTEND CRASH`:\n  - Error: `%s`\n",
-		Error:            "  - Trace: `%s`\n",
-		FrontendApi:      "🌐 `FRONTEND API CALL` `%s %s` -> Status: `%s`",
-		Status:           "  - 🎫 Headers: `%s`\n",
-		Headers:          "  - 🎫 Headers: `%s`\n",
-		ReqBody:          "  - 🔻 Request Body: %s\n",
-		ResBody:          "  - 🔺 Response Body: %s\n",
-		NoFrontend:       "- (No Frontend events recorded. Please check F12.)\n",
-		NoLogs:           "- (No info/warn logs printed before error)\n",
-		BackendExc:       "\n### 🛑 BACKEND EXCEPTION STACKTRACE\n",
-		NoException:      "- (Backend did not throw Exception)\n",
-		SystemErr:        "\n### ⚙️ SYSTEM BACKGROUND ERRORS (RECENT SYSTEM ERRORS)\n",
-		SystemNote:       "> Note: These errors are generated from Background Threads (RabbitMQ, HikariCP, Memory...) and may be the root cause of the error or affect the above Request.\n",
-		Truncated:        "... [Truncated due to excessive length]",
-		TruncatedVI:      "... [Truncated due to excessive length]",
-		FrameworkHidden:  "\t... [framework internal calls hidden]",
-		NoBackendWarning: "\n⚠️ [WARNING] No Flame Graph data received from Backend (OTel Agent may be delayed 5s, or this is a Frontend-only request).\n",
-		AuthAttached:     "[TOKEN/COOKIE ATTACHED]",
-		AuthEmpty:        "[EMPTY - No Token/Cookie received]",
+		Intro:                "Please analyze the system error based on the E2E Runtime Context below:\n\n",
+		Env:                  "\n### 🖥️ ENVIRONMENT & INFRASTRUCTURE\n",
+		CpuMem:               "- Process Metrics: `CPU %.1f%% | RAM %.0f MB`\n",
+		WaitingOtel:          "- 📊 CPU & JVM Memory: `⏳ Waiting for OTel agent...`\n",
+		HttpCtx:              "\n### 🌐 HTTP REQUEST CONTEXT\n",
+		Frontend:             "\n### 👣 FRONTEND JOURNEY (USER JOURNEY)\n",
+		Browser:              "  - 💻 Browser: `%s`\n",
+		BackendLog:           "\n### 🛤️ BACKEND JOURNEY (LOGS)\n",
+		FlameGraph:           "\n### ⏳ EXECUTION ORDER & SQL (FLAME GRAPH)\n",
+		N1Warning:            "%s⚠️ [N+1 DETECTED] ^ The above DB query is called in a loop %d times!\n",
+		WsAt:                 "at `%s`",
+		Payload:              "  - Payload: `%s`\n",
+		CurrentPage:          "Current page",
+		UnknownElem:          "Unknown Element",
+		ClickAt:              "at `%s` (Element: `%s`)",
+		FrontendCrash:        "🛑 `FRONTEND CRASH`:\n  - Error: `%s`\n",
+		Error:                "  - Trace: `%s`\n",
+		FrontendApi:          "🌐 `FRONTEND API CALL` `%s %s` -> Status: `%s`",
+		Status:               "  - 🎫 Headers: `%s`\n",
+		Headers:              "  - 🎫 Headers: `%s`\n",
+		ReqBody:              "  - 🔻 Request Body: %s\n",
+		ResBody:              "  - 🔺 Response Body: %s\n",
+		NoFrontend:           "- (No Frontend events recorded. Please check F12.)\n",
+		NoLogs:               "- (No info/warn logs printed before error)\n",
+		BackendExc:           "\n### 🛑 BACKEND EXCEPTION STACKTRACE\n",
+		NoException:          "- (Backend did not throw Exception)\n",
+		SystemErr:            "\n### ⚙️ SYSTEM BACKGROUND ERRORS (RECENT SYSTEM ERRORS)\n",
+		SystemNote:           "> Note: These errors are generated from Background Threads (RabbitMQ, HikariCP, Memory...) and may be the root cause of the error or affect the above Request.\n",
+		Truncated:            "... [Truncated due to excessive length]",
+		TruncatedVI:          "... [Truncated due to excessive length]",
+		FrameworkHidden:      "\t... [framework internal calls hidden]",
+		NoBackendWarning:     "\n⚠️ [WARNING] No Flame Graph data received from Backend (OTel Agent may be delayed 5s, or this is a Frontend-only request).\n",
+		AuthAttached:         "[TOKEN/COOKIE ATTACHED]",
+		AuthEmpty:            "[EMPTY - No Token/Cookie received]",
 		StartupMsg:           "🚀 Trace2Prompt (The AI Fixer) is running in background on port 4318...",
 		StartupHint:          "👉 Just code normally. When there are errors, I will BEEP and serve it directly to AI!",
 		MetricsUpdated:       "📊 [Metrics] Updated latest RAM/CPU status!",
@@ -199,9 +184,6 @@ var dicts = map[string]PromptDict{
 	},
 }
 
-
-
-
 // serverLang controls which language is used for server-side console log messages.
 // Set via --lang CLI flag in main.go (default: "en").
 var serverLang = "en"
@@ -218,23 +200,13 @@ func maskSensitiveData(text string) string {
 	if text == "" {
 		return text
 	}
-	// Mask Token/Key
-	text = tokenRegex.ReplaceAllString(text, "${1}[REDACTED]")
-	// Mask Email
-	text = emailRegex.ReplaceAllString(text, "[EMAIL_HIDDEN]")
 
-	text = signedUrlRegex.ReplaceAllString(text, "$1?[SIGNED_PARAMS_HIDDEN]")
+	for _, rule := range CompiledMaskingRules {
+		text = rule.Regex.ReplaceAllString(text, rule.Replace)
+	}
+
 	return text
 }
-
-func maskSQLQuery(sql string) string {
-	if sql == "" {
-		return sql
-	}
-	// Blur values (strings in quotes) after sensitive columns
-	return sqlSensitiveRegex.ReplaceAllString(sql, "${1} = '[REDACTED]'")
-}
-
 
 // JSON beautifier function for readers
 // JSON beautifier function for readers (UPGRADED TO HANDLE TRUNCATED JSON)
@@ -254,21 +226,25 @@ func prettyJSONWithMarker(raw string, truncatedMarker string) string {
 	// 2. Try to format original JSON first
 	var prettyBuf bytes.Buffer
 	err := json.Indent(&prettyBuf, []byte(cleanRaw), "    ", "  ")
-	
+
 	// 3. IF ERROR (DUE TO TRUNCATED JSON FROM FRONTEND) -> USE "BRACKET COUNTING" ALGORITHM TO PATCH
 	if err != nil {
 		// Temporarily patch by counting opening brackets {, [ and automatically closing }, ]
 		openBraces := strings.Count(cleanRaw, "{") - strings.Count(cleanRaw, "}")
 		openBrackets := strings.Count(cleanRaw, "[") - strings.Count(cleanRaw, "]")
-		
+
 		patchedRaw := cleanRaw
 		// Fix truncated string (example: "quan )
 		if strings.Count(patchedRaw, "\"")%2 != 0 {
 			patchedRaw += "\""
 		}
-		
-		for i := 0; i < openBraces; i++ { patchedRaw += "}" }
-		for i := 0; i < openBrackets; i++ { patchedRaw += "]" }
+
+		for i := 0; i < openBraces; i++ {
+			patchedRaw += "}"
+		}
+		for i := 0; i < openBrackets; i++ {
+			patchedRaw += "]"
+		}
 
 		// Try to format JSON again after patching
 		var patchedBuf bytes.Buffer
@@ -276,7 +252,7 @@ func prettyJSONWithMarker(raw string, truncatedMarker string) string {
 		if err2 == nil {
 			return "\n    " + patchedBuf.String() + suffix
 		}
-		
+
 		// If still heavily error-prone, manually break lines for better readability
 		manualFormat := strings.ReplaceAll(cleanRaw, "\",\"", "\",\n      \"")
 		manualFormat = strings.ReplaceAll(manualFormat, "},{", "},\n    {")
@@ -317,7 +293,9 @@ func filterStacktrace(rawStacktrace string) string {
 
 func filterStacktraceL(rawStacktrace string, t PromptDict) string {
 	lines := strings.Split(strings.TrimSpace(rawStacktrace), "\n")
-	if len(lines) == 0 { return rawStacktrace }
+	if len(lines) == 0 {
+		return rawStacktrace
+	}
 
 	var result []string
 	result = append(result, lines[0])
@@ -326,7 +304,9 @@ func filterStacktraceL(rawStacktrace string, t PromptDict) string {
 	for i := 1; i < len(lines); i++ {
 		line := lines[i]
 		trimmedLine := strings.TrimSpace(line)
-		if trimmedLine == "" { continue }
+		if trimmedLine == "" {
+			continue
+		}
 
 		if i <= 3 || strings.Contains(trimmedLine, ProjectNamespace) {
 			result = append(result, line)
@@ -347,9 +327,9 @@ func filterStacktraceL(rawStacktrace string, t PromptDict) string {
 func generateE2EPrompt(targetTraceID string, lang string) string {
 	t, ok := dicts[lang]
 	if !ok {
-		t = dicts["en"] 
+		t = dicts["en"]
 	}
-	
+
 	// Lock Mutex once in main function for safety for all child functions accessing data
 	mu.Lock()
 	defer mu.Unlock()
@@ -405,8 +385,10 @@ func findBestTraceMatch(targetTraceID string) (*TraceRecord, bool) {
 			for _, tr := range traceMap {
 				if tr.HttpUrl != "" && strings.Contains(targetUrl, tr.HttpUrl) {
 					diff := tr.LastUpdated.Sub(targetTime)
-					if diff < 0 { diff = -diff }
-					
+					if diff < 0 {
+						diff = -diff
+					}
+
 					if diff <= 3*time.Second {
 						bestTrace = tr
 						exists = true
@@ -432,7 +414,7 @@ func buildEnvironmentContext(sb *strings.Builder, bestTrace *TraceRecord, hasBac
 	sb.WriteString(fmt.Sprintf("- OS: `%s`\n", bestTrace.OsDesc))
 	sb.WriteString(fmt.Sprintf("- Runtime: `%s`\n", bestTrace.JavaVersion))
 	sb.WriteString(fmt.Sprintf("- Database: `%s @ %s`\n", bestTrace.DbSystem, bestTrace.DbAddress))
-	
+
 	if bestTrace.SnapshotRAM > 0 || bestTrace.SnapshotCPU > 0 {
 		sb.WriteString(fmt.Sprintf(t.CpuMem, bestTrace.SnapshotCPU, bestTrace.SnapshotRAM))
 	} else {
@@ -444,7 +426,9 @@ func buildEnvironmentContext(sb *strings.Builder, bestTrace *TraceRecord, hasBac
 	}
 	if bestTrace.ContainerID != "" {
 		shortId := bestTrace.ContainerID
-		if len(shortId) > 12 { shortId = shortId[:12] }
+		if len(shortId) > 12 {
+			shortId = shortId[:12]
+		}
 		sb.WriteString(fmt.Sprintf("- 🐳 Docker Container: `%s`\n", shortId))
 	}
 
@@ -452,7 +436,7 @@ func buildEnvironmentContext(sb *strings.Builder, bestTrace *TraceRecord, hasBac
 	sb.WriteString(fmt.Sprintf("- Method: `%s`\n", bestTrace.HttpMethod))
 	sb.WriteString(fmt.Sprintf("- URL: `%s`\n", bestTrace.HttpUrl))
 	sb.WriteString(fmt.Sprintf("- Status Code: `%s`\n", bestTrace.HttpStatus))
-	
+
 	if bestTrace.AuthToken != "" {
 		sb.WriteString(fmt.Sprintf("- 🔐 Backend Received Auth: `%s`\n", t.AuthAttached))
 		if bestTrace.AuthContext != "" {
@@ -473,7 +457,7 @@ func buildFrontendJourney(sb *strings.Builder, targetTraceID string, bestTrace *
 	lastWsType := ""
 	wsSpamCount := 0
 
-	// 🌟 LẤY THỜI GIAN CỦA TRACE LÀM MỐC
+	// 🌟 USE TRACE TIME AS BASELINE
 	var targetTime time.Time
 	for _, s := range spanBuffer {
 		if s.TraceID == targetTraceID {
@@ -486,9 +470,9 @@ func buildFrontendJourney(sb *strings.Builder, targetTraceID string, bestTrace *
 		s := spanBuffer[i]
 		timeStr := s.Timestamp.Format("15:04:05")
 
-		// 🌟 LOGIC CHÍNH NÂNG CẤP: FUZZY MATCH CHO TOÀN BỘ FRONTEND
-		// Nếu là cùng TraceID -> Chắc chắn lấy
-		// Nếu khác TraceID, nhưng xảy ra trong vòng 10 giây trước khi Backend lỗi -> Cũng lấy luôn!
+		// 🌟 UPGRADED MAIN LOGIC: FUZZY MATCH FOR THE ENTIRE FRONTEND
+		// If same TraceID -> Definitely include
+		// If different TraceID, but occurs within 10 seconds before Backend error -> Also include!
 		isValidTimeContext := false
 		if !targetTime.IsZero() {
 			timeDiff := targetTime.Sub(s.Timestamp)
@@ -496,14 +480,13 @@ func buildFrontendJourney(sb *strings.Builder, targetTraceID string, bestTrace *
 				isValidTimeContext = true
 			}
 		}
-		
+
 		if s.TraceID != targetTraceID && !isValidTimeContext {
-			continue // Bỏ qua các sự kiện không liên quan hoặc quá cũ
+			continue // Skip irrelevant or old events
 		}
 
 		// 1. CATCH WEBSOCKET EVENTS
 		if strings.HasPrefix(s.Name, "WS ") {
-			// ... (Giữ nguyên code phần Websocket của bạn) ...
 			url := s.Attributes["http.url"]
 			if url == lastWsUrl && s.Name == lastWsType {
 				wsSpamCount++
@@ -515,9 +498,13 @@ func buildFrontendJourney(sb *strings.Builder, targetTraceID string, bestTrace *
 			}
 			payload := s.Attributes["messaging.payload"]
 			icon := "📤"
-			if s.Name == "WS RECEIVE" { icon = "📥" }
+			if s.Name == "WS RECEIVE" {
+				icon = "📥"
+			}
 			sb.WriteString(fmt.Sprintf("- [%s] %s `%s` %s\n", timeStr, icon, s.Name, fmt.Sprintf(t.WsAt, url)))
-			if payload != "" { sb.WriteString(fmt.Sprintf(t.Payload, payload)) }
+			if payload != "" {
+				sb.WriteString(fmt.Sprintf(t.Payload, payload))
+			}
 			foundFrontend = true
 			lastWsUrl = url
 			lastWsType = s.Name
@@ -527,10 +514,16 @@ func buildFrontendJourney(sb *strings.Builder, targetTraceID string, bestTrace *
 		// 2. CLICK EVENTS
 		if s.Name == "click" || strings.HasPrefix(s.Name, "Navigation") {
 			xpath := s.Attributes["target_xpath"]
-			if xpath == "" { xpath = s.Attributes["target_id"] }
+			if xpath == "" {
+				xpath = s.Attributes["target_id"]
+			}
 			url := s.Attributes["http.url"]
-			if url == "" { url = t.CurrentPage }
-			if xpath == "" { xpath = t.UnknownElem }
+			if url == "" {
+				url = t.CurrentPage
+			}
+			if xpath == "" {
+				xpath = t.UnknownElem
+			}
 			sb.WriteString(fmt.Sprintf("- [%s] 🖱️ `CLICK` %s\n", timeStr, fmt.Sprintf(t.ClickAt, url, xpath)))
 			foundFrontend = true
 		}
@@ -539,7 +532,7 @@ func buildFrontendJourney(sb *strings.Builder, targetTraceID string, bestTrace *
 		if strings.Contains(s.Name, "CONSOLE_") {
 			msg := s.Attributes["console.message"]
 			if msg != "" {
-				// Cắt bớt log dài để tránh spam
+				// Truncate long logs to avoid spam
 				sb.WriteString(fmt.Sprintf("- [%s] %s: `%s`\n", timeStr, s.Name, truncateTextL(msg, 200, t)))
 				foundFrontend = true
 			}
@@ -548,10 +541,14 @@ func buildFrontendJourney(sb *strings.Builder, targetTraceID string, bestTrace *
 		// 4. FRONTEND JS CRASH & PROMISE REJECT
 		if strings.Contains(s.Name, "CRASH") || strings.Contains(s.Name, "REJECT") || strings.Contains(s.Name, "RESOURCE_ERROR") || s.Name == "EXCEPTION" {
 			errMsg := s.Attributes["error.message"]
-			if errMsg == "" { errMsg = s.Attributes["exception.message"] }
+			if errMsg == "" {
+				errMsg = s.Attributes["exception.message"]
+			}
 			errStack := s.Attributes["error.stack"]
 			sb.WriteString(fmt.Sprintf("- [%s] %s\n", timeStr, fmt.Sprintf(t.FrontendCrash, errMsg)))
-			if errStack != "" { sb.WriteString(fmt.Sprintf(t.Error, truncateTextL(errStack, 300, t))) }
+			if errStack != "" {
+				sb.WriteString(fmt.Sprintf(t.Error, truncateTextL(errStack, 300, t)))
+			}
 			foundFrontend = true
 		}
 
@@ -559,16 +556,20 @@ func buildFrontendJourney(sb *strings.Builder, targetTraceID string, bestTrace *
 		if !apiPrinted && !strings.Contains(s.Name, "CONSOLE_") && !strings.Contains(s.Name, "CRASH") && !strings.Contains(s.Name, "REJECT") && s.Name != "click" && s.Name != "EXCEPTION" && s.Name != "🖼️ RESOURCE_ERROR" {
 			url := s.Attributes["http.url"]
 			method := s.Attributes["http.request.method"]
-			if method == "" { method = s.Attributes["http.method"] }
+			if method == "" {
+				method = s.Attributes["http.method"]
+			}
 
 			if url != "" && method != "" {
 				isSameTrace := s.TraceID == targetTraceID
 				isFuzzyMatch := hasBackend && bestTrace.HttpUrl != "" && strings.Contains(url, bestTrace.HttpUrl)
 
-				// CHỈ IN RA NẾU TRÙNG KHỚP CHÍNH XÁC VỚI API ĐANG LỖI Ở BACKEND
+				// ONLY PRINT IF IT EXACTLY MATCHES THE FAILING API IN THE BACKEND
 				if isSameTrace || isFuzzyMatch {
 					status := s.Attributes["http.response.status_code"]
-					if status == "" { status = s.Attributes["http.status_code"] }
+					if status == "" {
+						status = s.Attributes["http.status_code"]
+					}
 					reqBody := s.Attributes["http.request.body"]
 					resBody := s.Attributes["http.response.body"]
 					headers := s.Attributes["http.request.headers"]
@@ -584,16 +585,24 @@ func buildFrontendJourney(sb *strings.Builder, targetTraceID string, bestTrace *
 						sb.WriteString(fmt.Sprintf("  - %s: `%s`\n", t.CurrentPage, currentUrl))
 						sb.WriteString(fmt.Sprintf("  - Network: `%s` | Screen: `%s`\n", networkStat, viewport))
 					}
-					if userAgent != "" { sb.WriteString(fmt.Sprintf(t.Browser, userAgent)) }
-					if headers != "" && headers != "{}" { sb.WriteString(fmt.Sprintf(t.Headers, truncateTextL(headers, 200, t))) }
+					if userAgent != "" {
+						sb.WriteString(fmt.Sprintf(t.Browser, userAgent))
+					}
+					if headers != "" && headers != "{}" {
+						sb.WriteString(fmt.Sprintf(t.Headers, truncateTextL(headers, 200, t)))
+					}
 					if reqBody != "" {
 						sizeInfo := ""
-						if reqSize != "" { sizeInfo = fmt.Sprintf(" (Size: %s)", reqSize) }
+						if reqSize != "" {
+							sizeInfo = fmt.Sprintf(" (Size: %s)", reqSize)
+						}
 						sb.WriteString(fmt.Sprintf("  - 🔻 Request Body%s: %s\n", sizeInfo, prettyJSONL(maskSensitiveData(reqBody), t)))
 					}
 					if resBody != "" {
 						sizeInfo := ""
-						if resSize != "" { sizeInfo = fmt.Sprintf(" (Size: %s)", resSize) }
+						if resSize != "" {
+							sizeInfo = fmt.Sprintf(" (Size: %s)", resSize)
+						}
 						sb.WriteString(fmt.Sprintf("  - 🔺 Response Body%s: %s\n", sizeInfo, prettyJSONL(maskSensitiveData(resBody), t)))
 					}
 					foundFrontend = true
@@ -603,8 +612,12 @@ func buildFrontendJourney(sb *strings.Builder, targetTraceID string, bestTrace *
 		}
 	}
 
-	if wsSpamCount > 0 { sb.WriteString(fmt.Sprintf("- 🔄 (Skip %d duplicate %s messages)\n", wsSpamCount, lastWsType)) }
-	if !foundFrontend { sb.WriteString(t.NoFrontend) }
+	if wsSpamCount > 0 {
+		sb.WriteString(fmt.Sprintf("- 🔄 (Skip %d duplicate %s messages)\n", wsSpamCount, lastWsType))
+	}
+	if !foundFrontend {
+		sb.WriteString(t.NoFrontend)
+	}
 }
 
 // 4. Logic to print Backend Logs, Exceptions & Flame Graph
@@ -636,7 +649,7 @@ func buildBackendJourney(sb *strings.Builder, bestTrace *TraceRecord, t PromptDi
 	for _, span := range bestTrace.Spans {
 		span.Children = nil
 	}
-	
+
 	var roots []*SpanNode
 	for _, span := range bestTrace.Spans {
 		if span.ParentSpanID == "" {
@@ -679,7 +692,7 @@ func buildSystemErrors(sb *strings.Builder, t PromptDict) {
 		}
 
 		errorCount[sig]++
-		latestFullMsg[sig] = sysErr 
+		latestFullMsg[sig] = sysErr
 
 	}
 

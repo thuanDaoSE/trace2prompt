@@ -1,0 +1,33 @@
+# trace2prompt.yaml
+masking:
+  # Tên các trường JSON/Header sẽ bị mã hóa thành [REDACTED_SECRET]
+  fields:
+    - "password"
+    - "secret"
+    - "token"
+    - "api_key"
+    - "apikey"
+    - "credential"
+    - "cookie"
+    - "authorization"
+    - "credit_card"
+    - "cvv"
+
+  # Các chuỗi Regex để tìm và ẩn dữ liệu nhạy cảm trong các đoạn text dài
+  regex:
+    - pattern: '(?i)(Bearer\s+|token=|api_key=|secret=)[A-Za-z0-9\-\._~+/]+=*'
+      replace: "${1}[REDACTED]"
+
+    - pattern: '(?i)[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}'
+      replace: "[EMAIL_HIDDEN]"
+
+    # Đã fix lỗi nháy đơn ở đây (Dùng '' để thoát ký tự)
+    - pattern: '(?i)(password|passwd|secret|token|api_key|cvv|credit_card)[\s=:]+(''[^'']+''|"[^"]+")'
+      replace: "${1} = '[REDACTED]'"
+
+    # Đã fix lỗi nháy đơn ở url regex
+    - pattern: '(https?://[^\s"''<>]+)(\?(X-Amz-Algorithm|AWSAccessKeyId|Signature|Expires|X-Goog-Algorithm)[^\s"''<>]*)'
+      replace: "$1?[SIGNED_PARAMS_HIDDEN]"
+
+    - pattern: "sk-[a-zA-Z0-9]{48}"
+      replace: "[REDACTED_API_KEY]"

@@ -1,13 +1,13 @@
 package main
 
 import (
-	"embed"
 	"bytes"
+	"embed"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os/exec"
 	"runtime"
-	"encoding/json"
 	"strings"
 	"sync"
 	"time"
@@ -20,14 +20,14 @@ const ProjectNamespace = "com.coffeeshop"
 const MaxBufferSize = 2000
 
 type SpanRecord struct {
-	TraceID    string
-	SpanID     string
-	Name       string
+	TraceID string
+	SpanID  string
+	Name    string
 
 	ParentSpanID string
-	Timestamp  time.Time
-	Attributes map[string]string
-	HasError   bool
+	Timestamp    time.Time
+	Attributes   map[string]string
+	HasError     bool
 }
 
 type TraceSummary struct {
@@ -40,27 +40,27 @@ type TraceSummary struct {
 }
 
 var latestMetrics = struct {
-	CPUUsage float64
-	RAMUsed  float64
-	RAMMax   float64
+	CPUUsage     float64
+	RAMUsed      float64
+	RAMMax       float64
 	DbActiveConn float64
 	DbIdleConn   float64
 	GCPauseTime  float64
-	mu       sync.Mutex
+	mu           sync.Mutex
 }{}
 
 type SpanNode struct {
-	SpanID        string
-	ParentSpanID  string
-	Name          string
-	DurationMs    int64
-	SQL           string
-	MsgSystem     string
-	DbSystem      string
-	ServiceName   string
+	SpanID       string
+	ParentSpanID string
+	Name         string
+	DurationMs   int64
+	SQL          string
+	MsgSystem    string
+	DbSystem     string
+	ServiceName  string
 
-	MsgOperation  string 
-	MsgDestName   string 
+	MsgOperation string
+	MsgDestName  string
 
 	ExtHttpUrl    string
 	ExtHttpMethod string
@@ -144,7 +144,9 @@ func copyToClipboard(text string) {
 		return
 	}
 	in, err := cmd.StdinPipe()
-	if err != nil { return }
+	if err != nil {
+		return
+	}
 	go func() {
 		defer in.Close()
 		in.Write([]byte(text))
@@ -187,35 +189,73 @@ func buildTreeStr(node *SpanNode, depth int, sb *strings.Builder) {
 	systemName := ""
 
 	// --- BROKERS ---
-	if node.MsgSystem == "kafka" { icon = "📨"; systemName = "[KAFKA]" }
-	if node.MsgSystem == "rabbitmq" { icon = "🐰"; systemName = "[RABBITMQ]" }
-	if node.MsgSystem == "aws_sqs" || node.MsgSystem == "sqs" { icon = "☁️"; systemName = "[AWS SQS]" }
+	if node.MsgSystem == "kafka" {
+		icon = "📨"
+		systemName = "[KAFKA]"
+	}
+	if node.MsgSystem == "rabbitmq" {
+		icon = "🐰"
+		systemName = "[RABBITMQ]"
+	}
+	if node.MsgSystem == "aws_sqs" || node.MsgSystem == "sqs" {
+		icon = "☁️"
+		systemName = "[AWS SQS]"
+	}
 
 	// --- DATABASES & CACHE ---
-	if node.DbSystem == "redis" || node.DbSystem == "memcached" { icon = "⚡"; systemName = "[CACHE]" }
+	if node.DbSystem == "redis" || node.DbSystem == "memcached" {
+		icon = "⚡"
+		systemName = "[CACHE]"
+	}
 	nodeNameUpper := strings.ToUpper(node.Name)
 	if strings.Contains(nodeNameUpper, "S3.") || strings.Contains(nodeNameUpper, "S3 ") {
-		icon = "🪣"; systemName = "[AWS S3]"
+		icon = "🪣"
+		systemName = "[AWS S3]"
 	}
-	if strings.Contains(nodeNameUpper, "DYNAMODB") { icon = "📚"; systemName = "[DYNAMODB]" }
+	if strings.Contains(nodeNameUpper, "DYNAMODB") {
+		icon = "📚"
+		systemName = "[DYNAMODB]"
+	}
 	if strings.Contains(nodeNameUpper, "S3.") || node.RpcSystem == "aws-api" {
-		icon = "☁️"; systemName = "[AWS/S3]"
+		icon = "☁️"
+		systemName = "[AWS/S3]"
 	}
-	
-	if node.DbSystem == "postgresql" || node.DbSystem == "mysql" || node.DbSystem == "mssql" || node.DbSystem == "oracle" { icon = "🗄️"; systemName = "[SQL DB]" }
-	if node.DbSystem == "mongodb" { icon = "🍃"; systemName = "[MONGODB]" }
-	if node.DbSystem == "elasticsearch" { icon = "🔍"; systemName = "[ELASTICSEARCH]" }
 
-	if node.RpcSystem == "grpc" { icon = "🚀"; systemName = "[gRPC]" }
-	if node.RpcSystem == "aws-api" || strings.Contains(strings.ToUpper(node.Name), "S3.") { icon = "☁️"; systemName = "[AWS S3]" }
-	if node.FaasTrigger != "" { icon = "🌩️"; systemName = "[SERVERLESS]" }
-	if node.GraphqlOperation != "" { icon = "⚛️"; systemName = "[GRAPHQL]" }
+	if node.DbSystem == "postgresql" || node.DbSystem == "mysql" || node.DbSystem == "mssql" || node.DbSystem == "oracle" {
+		icon = "🗄️"
+		systemName = "[SQL DB]"
+	}
+	if node.DbSystem == "mongodb" {
+		icon = "🍃"
+		systemName = "[MONGODB]"
+	}
+	if node.DbSystem == "elasticsearch" {
+		icon = "🔍"
+		systemName = "[ELASTICSEARCH]"
+	}
+
+	if node.RpcSystem == "grpc" {
+		icon = "🚀"
+		systemName = "[gRPC]"
+	}
+	if node.RpcSystem == "aws-api" || strings.Contains(strings.ToUpper(node.Name), "S3.") {
+		icon = "☁️"
+		systemName = "[AWS S3]"
+	}
+	if node.FaasTrigger != "" {
+		icon = "🌩️"
+		systemName = "[SERVERLESS]"
+	}
+	if node.GraphqlOperation != "" {
+		icon = "⚛️"
+		systemName = "[GRAPHQL]"
+	}
 
 	if node.SQL != "" {
 		if node.GraphqlOperation != "" {
 			sb.WriteString(fmt.Sprintf("%s- [%d ms] %s%s %s %s\n%s    ```graphql\n%s    %s\n%s    ```\n", prefix, node.DurationMs, serviceTag, icon, systemName, getServerDict().GraphqlOp, prefix, prefix, node.SQL, prefix))
 		} else if node.DbSystem == "redis" || node.DbSystem == "memcached" {
-		
+
 			sb.WriteString(fmt.Sprintf("%s- [%d ms] %s%s %s %s\n%s    ```text\n%s    %s\n%s    ```\n", prefix, node.DurationMs, serviceTag, icon, systemName, getServerDict().RedisCmd, prefix, prefix, node.SQL, prefix))
 		} else if node.DbSystem == "mongodb" || node.DbSystem == "elasticsearch" {
 			// NoSQL use JSON + Pretty Print
@@ -226,34 +266,43 @@ func buildTreeStr(node *SpanNode, depth int, sb *strings.Builder) {
 			}
 			prettyJson = strings.ReplaceAll(prettyJson, "\n", "\n"+prefix+"    ")
 			sb.WriteString(fmt.Sprintf("%s- [%d ms] %s%s %s %s\n%s    ```json\n%s    %s\n%s    ```\n", prefix, node.DurationMs, serviceTag, icon, systemName, getServerDict().MongoQuery, prefix, prefix, prettyJson, prefix))
-			
+
 		} else {
 			// SQL Relational
-			if icon == "⚙️" { icon = "🗄️"; systemName = "[DB]" } // Fallback
+			if icon == "⚙️" {
+				icon = "🗄️"
+				systemName = "[DB]"
+			} // Fallback
 			sb.WriteString(fmt.Sprintf("%s- [%d ms] %s%s %s %s\n%s    ```sql\n%s    %s\n%s    ```\n", prefix, node.DurationMs, serviceTag, icon, systemName, getServerDict().SqlQuery, prefix, prefix, formatSQL(node.SQL), prefix))
 		}
 	} else if node.ExtHttpUrl != "" {
 		sb.WriteString(fmt.Sprintf("%s- [%d ms] %s%s `%s %s`\n", prefix, node.DurationMs, serviceTag, getServerDict().ExternalApi, node.ExtHttpMethod, node.ExtHttpUrl))
 	} else {
 		displayName := node.Name
-		if systemName != "" { displayName = systemName + " " + node.Name }
+		if systemName != "" {
+			displayName = systemName + " " + node.Name
+		}
 		sb.WriteString(fmt.Sprintf("%s- [%d ms] %s%s `%s`\n", prefix, node.DurationMs, serviceTag, icon, displayName))
 	}
-	
+
 	// Display additional Broker information
 	if node.MsgSystem != "" {
 		action := getServerDict().InteractWith
-		if node.MsgOperation != "" { action = node.MsgOperation }
+		if node.MsgOperation != "" {
+			action = node.MsgOperation
+		}
 		topic := getServerDict().UnknownTopic
-		if node.MsgDestName != "" { topic = node.MsgDestName }
-		
+		if node.MsgDestName != "" {
+			topic = node.MsgDestName
+		}
+
 		sb.WriteString(fmt.Sprintf("%s  - %s %s `%s`\n", indent, action, getServerDict().TopicQueue, topic))
 	}
 
 	var repeatCount int = 0
 	for i := 0; i < len(node.Children); i++ {
 		child := node.Children[i]
-		
+
 		if i < len(node.Children)-1 {
 			nextChild := node.Children[i+1]
 			if child.SQL != "" && child.SQL == nextChild.SQL && child.Name == nextChild.Name {
@@ -263,7 +312,7 @@ func buildTreeStr(node *SpanNode, depth int, sb *strings.Builder) {
 		}
 
 		buildTreeStr(child, depth+1, sb)
-		
+
 		if repeatCount > 0 {
 			indentChild := strings.Repeat("  ", depth+1)
 			sb.WriteString(fmt.Sprintf(getServerDict().N1DetectedBuild, indentChild, repeatCount+1))
@@ -276,12 +325,12 @@ func triggerE2EPromptCreation(traceID string) {
 	tr := getOrCreateTrace(traceID)
 	// 🌟 SKIP OPTIONS REQUESTS (CORS Preflight)
 	if tr.HttpMethod == "OPTIONS" {
-		return 
+		return
 	}
 
 	go func() {
-		time.Sleep(2000 * time.Millisecond) 
-		
+		time.Sleep(2000 * time.Millisecond)
+
 		prompt := generateE2EPrompt(traceID, "en")
 		if prompt != "" {
 			mu.Lock()
@@ -289,7 +338,7 @@ func triggerE2EPromptCreation(traceID string) {
 			mu.Unlock()
 			fmt.Printf(getServerDict().NewErrorCaught+"\n", traceID)
 		}
-		
+
 		mu.Lock()
 		isDebouncing = false
 		mu.Unlock()
@@ -297,6 +346,8 @@ func triggerE2EPromptCreation(traceID string) {
 }
 
 func main() {
+	LoadConfig()
+
 	var mcpMode bool
 	var langFlag string
 	flag.BoolVar(&mcpMode, "mcp", false, "Run in MCP Server mode for AI Agent")
@@ -308,7 +359,7 @@ func main() {
 
 	if mcpMode {
 		runMCPServer()
-		return 
+		return
 	}
 
 	startServers()

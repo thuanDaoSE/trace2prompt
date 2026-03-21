@@ -232,18 +232,18 @@ git clone https://github.com/thuanDaoSE/trace2prompt.git
 cd trace2prompt
 
 # For Mac/Linux:
-docker run --rm -v "$(pwd):/app" -w /app golang:latest go build -o trace2prompt main.go otel_handlers.go prompt_generator.go mcp_server.go
+docker run --rm -v "$(pwd):/app" -w /app golang:latest go build -o trace2prompt .
 ./trace2prompt
 
 # For Windows (PowerShell):
-docker run --rm -v "${PWD}:/app" -w /app golang:latest go build -o trace2prompt.exe main.go otel_handlers.go prompt_generator.go mcp_server.go
+docker run --rm -v "${PWD}:/app" -w /app golang:latest go build -o trace2prompt.exe .
 .\trace2prompt.exe
 ```
 
 **Method 2: Build with Go (If you have Go installed)**
 
 ```bash
-go build -o trace2prompt main.go otel_handlers.go prompt_generator.go mcp_server.go
+go build -o trace2prompt .
 ./trace2prompt
 ```
 

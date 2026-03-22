@@ -294,9 +294,9 @@ func startServers() {
 
 					// Save this super context for prompt_generator.go
 					if jwtClaims != "" {
-						tr.AuthContext = "\n- **JWT Claims (Auto decoded):** \n```json\n" + jwtClaims + "\n```"
+						tr.AuthContext = fmt.Sprintf(getServerDict().JwtClaimsDecoded, jwtClaims)
 					} else if cookieKeys != "" {
-						tr.AuthContext = "\n- **Cookies sent (Only show Keys):** `[" + cookieKeys + "]`"
+						tr.AuthContext = fmt.Sprintf(getServerDict().CookiesSent, cookieKeys)
 					}
 					tr.Spans[span.SpanID().String()] = &SpanNode{
 						SpanID:           span.SpanID().String(),
@@ -367,9 +367,9 @@ func startServers() {
 							latestMetrics.mu.Unlock()
 						}
 
-						errMsg := fmt.Sprintf("**Message:** %s\n", lr.Body().Str())
+						errMsg := fmt.Sprintf(getServerDict().ExcMessage, lr.Body().Str())
 						if stackVal, ok := lr.Attributes().Get("exception.stacktrace"); ok {
-							errMsg += fmt.Sprintf("**Stacktrace:**\n```text\n%s\n```\n", filterStacktrace(stackVal.Str()))
+							errMsg += fmt.Sprintf(getServerDict().ExcStacktrace, filterStacktrace(stackVal.Str()))
 						}
 						tr.ErrorMsgs = append(tr.ErrorMsgs, errMsg)
 

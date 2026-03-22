@@ -66,6 +66,13 @@ type PromptDict struct {
 	TopicQueue           string
 	UnknownTopic         string
 	MCPServerNotResp     string
+	GlobalN1Title        string
+	GlobalN1Warning      string
+	GlobalN1Count        string
+	JwtClaimsDecoded     string
+	CookiesSent          string
+	ExcMessage           string
+	ExcStacktrace        string
 }
 
 // Create 2 languages
@@ -125,6 +132,13 @@ var dicts = map[string]PromptDict{
 		TopicQueue:           "🎯 Topic/Queue:",
 		UnknownTopic:         "Topic không xác định",
 		MCPServerNotResp:     "⚠️ Trace2Prompt Server không phản hồi. Vui lòng kiểm tra xem Trace2Prompt.exe có đang chạy không, hoặc nhấn Enter trên màn hình đen nếu nó bị treo.",
+		GlobalN1Title:        "\n### 🚨 GLOBAL N+1 QUERY DETECTED (PHÁT HIỆN N+1 TỔNG THỂ)\n",
+		GlobalN1Warning:      "> ⚠️ Hệ thống phát hiện các câu SQL dưới đây bị gọi lặp lại rải rác rất nhiều lần. Vui lòng kiểm tra vòng lặp Code hoặc cấu hình FetchType/EntityGraph.\n\n",
+		GlobalN1Count:        "- 🔁 Bị gọi **%d lần**:\n```sql\n%s\n```\n",
+		JwtClaimsDecoded:     "\n- **JWT Claims (Tự động giải mã):** \n```json\n%s\n```",
+		CookiesSent:          "\n- **Cookies đã gửi (Chỉ hiện Keys):** `[%s]`",
+		ExcMessage:           "**Thông báo lỗi:** %s\n",
+		ExcStacktrace:        "**Stacktrace:**\n```text\n%s\n```\n",
 	},
 	"en": {
 		Intro:                "Please analyze the system error based on the E2E Runtime Context below:\n\n",
@@ -181,6 +195,13 @@ var dicts = map[string]PromptDict{
 		TopicQueue:           "🎯 Topic/Queue:",
 		UnknownTopic:         "Unknown Topic",
 		MCPServerNotResp:     "⚠️ Trace2Prompt Server not responding. Please check if you have enabled Trace2Prompt.exe running in background, or press Enter on the black screen if it's frozen.",
+		GlobalN1Title:        "\n### 🚨 GLOBAL N+1 QUERY DETECTED\n",
+		GlobalN1Warning:      "> ⚠️ The system detected that the following SQL queries are repeatedly called many times. Please check your code loops or FetchType/EntityGraph configurations.\n\n",
+		GlobalN1Count:        "- 🔁 Called **%d times**:\n```sql\n%s\n```\n",
+		JwtClaimsDecoded:     "\n- **JWT Claims (Auto decoded):** \n```json\n%s\n```",
+		CookiesSent:          "\n- **Cookies sent (Only show Keys):** `[%s]`",
+		ExcMessage:           "**Message:** %s\n",
+		ExcStacktrace:        "**Stacktrace:**\n```text\n%s\n```\n",
 	},
 }
 
@@ -664,6 +685,28 @@ func buildBackendJourney(sb *strings.Builder, bestTrace *TraceRecord, t PromptDi
 	}
 	for _, root := range roots {
 		buildTreeStr(root, 0, sb)
+	}
+
+	// ==========================================
+	// 🚨 GLOBAL N+1 SCANNER
+	// ==========================================
+	sqlCounter := make(map[string]int)
+	for _, span := range bestTrace.Spans {
+		if span.SQL != "" {
+			sqlCounter[span.SQL]++
+		}
+	}
+
+	hasGlobalN1 := false
+	for sql, count := range sqlCounter {
+		if count >= 3 { // If the SQL query appears 3 or more times in 1 Request
+			if !hasGlobalN1 {
+				sb.WriteString(t.GlobalN1Title)
+				sb.WriteString(t.GlobalN1Warning)
+				hasGlobalN1 = true
+			}
+			sb.WriteString(fmt.Sprintf(t.GlobalN1Count, count, formatSQL(sql)))
+		}
 	}
 }
 

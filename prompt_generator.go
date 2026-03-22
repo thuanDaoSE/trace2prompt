@@ -73,8 +73,8 @@ var dicts = map[string]PromptDict{
 	"vi": {
 		Intro:                "Vui lòng phân tích lỗi hệ thống dựa trên thông tin E2E Runtime Context dưới đây:\n\n",
 		Env:                  "\n### 🖥️ MÔI TRƯỜNG & HẠ TẦNG\n",
-		CpuMem:               "- Tiêu thụ tài nguyên: `CPU %.1f%% | RAM %.0f MB`\n",
-		WaitingOtel:          "- 📊 CPU & JVM Memory: `⏳ Đang chờ OTel thu thập...`\n",
+		CpuMem:               "- 📊Tiêu thụ tài nguyên: `CPU %.1f%% | RAM %.0f MB`\n",
+		WaitingOtel:          "- 📊 Tiêu thụ tài nguyên: `⏳ Đang chờ OTel thu thập...(cập nhật mỗi 60s)`\n",
 		HttpCtx:              "\n### 🌐 HTTP REQUEST CONTEXT\n",
 		Frontend:             "\n### 👣 HÀNH TRÌNH FRONTEND (USER JOURNEY)\n",
 		Browser:              "  - 💻 Trình duyệt: `%s`\n",
@@ -129,8 +129,8 @@ var dicts = map[string]PromptDict{
 	"en": {
 		Intro:                "Please analyze the system error based on the E2E Runtime Context below:\n\n",
 		Env:                  "\n### 🖥️ ENVIRONMENT & INFRASTRUCTURE\n",
-		CpuMem:               "- Process Metrics: `CPU %.1f%% | RAM %.0f MB`\n",
-		WaitingOtel:          "- 📊 CPU & JVM Memory: `⏳ Waiting for OTel agent...`\n",
+		CpuMem:               "- 📊 Process Metrics: `CPU %.1f%% | RAM %.0f MB`\n",
+		WaitingOtel:          "- 📊 Process Metrics: `⏳ Waiting for OTel agent...(update per 60s)`\n",
 		HttpCtx:              "\n### 🌐 HTTP REQUEST CONTEXT\n",
 		Frontend:             "\n### 👣 FRONTEND JOURNEY (USER JOURNEY)\n",
 		Browser:              "  - 💻 Browser: `%s`\n",

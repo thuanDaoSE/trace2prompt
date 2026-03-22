@@ -463,23 +463,37 @@ func startServers() {
 						}
 					}
 
-					// Catch used RAM
-					if name == "jvm.memory.used" {
-						if m.Type() == pmetric.MetricTypeGauge && m.Gauge().DataPoints().Len() > 0 {
-							latestMetrics.RAMUsed = getVal(m.Gauge().DataPoints().At(0)) / (1024 * 1024)
-						} else if m.Type() == pmetric.MetricTypeSum && m.Sum().DataPoints().Len() > 0 {
-							latestMetrics.RAMUsed = getVal(m.Sum().DataPoints().At(0)) / (1024 * 1024)
+					if name == "jvm.memory.used" || name == "process.memory.usage" || name == "nodejs.memory.usage.rss" || name == "go.memory.used" {
+						var totalRam float64 = 0
+
+						if m.Type() == pmetric.MetricTypeGauge {
+							for d := 0; d < m.Gauge().DataPoints().Len(); d++ {
+								totalRam += getVal(m.Gauge().DataPoints().At(d))
+							}
+						} else if m.Type() == pmetric.MetricTypeSum {
+							for d := 0; d < m.Sum().DataPoints().Len(); d++ {
+								totalRam += getVal(m.Sum().DataPoints().At(d))
+							}
 						}
+
+						latestMetrics.RAMUsed = totalRam / (1024 * 1024)
 					}
 
 					// Catch max RAM
-					if name == "jvm.memory.limit" {
-						if m.Type() == pmetric.MetricTypeGauge && m.Gauge().DataPoints().Len() > 0 {
-							latestMetrics.RAMMax = getVal(m.Gauge().DataPoints().At(0)) / (1024 * 1024)
-						} else if m.Type() == pmetric.MetricTypeSum && m.Sum().DataPoints().Len() > 0 {
-							latestMetrics.RAMMax = getVal(m.Sum().DataPoints().At(0)) / (1024 * 1024)
+					if name == "jvm.memory.limit" || name == "process.memory.virtual" {
+						var totalMaxRam float64 = 0
+						if m.Type() == pmetric.MetricTypeGauge {
+							for d := 0; d < m.Gauge().DataPoints().Len(); d++ {
+								totalMaxRam += getVal(m.Gauge().DataPoints().At(d))
+							}
+						} else if m.Type() == pmetric.MetricTypeSum {
+							for d := 0; d < m.Sum().DataPoints().Len(); d++ {
+								totalMaxRam += getVal(m.Sum().DataPoints().At(d))
+							}
 						}
+						latestMetrics.RAMMax = totalMaxRam / (1024 * 1024)
 					}
+
 				}
 			}
 		}

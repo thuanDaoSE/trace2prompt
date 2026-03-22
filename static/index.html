@@ -1,186 +1,197 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Trace2Prompt - AI Bug Fixer</title>
 
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css"
-    />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<head>
+  <meta charset="UTF-8" />
+  <title>Trace2Prompt - AI Bug Fixer</title>
 
-    <style>
-      body {
-        margin: 0;
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        display: flex;
-        height: 100vh;
-        background: #0f172a;
-        color: #e2e8f0;
-      }
-      /* LEFT COLUMN: REQUEST LIST */
-      #sidebar {
-        width: 350px;
-        background: #1e293b;
-        border-right: 1px solid #334155;
-        display: flex;
-        flex-direction: column;
-      }
-      .header {
-        padding: 15px;
-        background: #0f172a;
-        border-bottom: 1px solid #334155;
-        font-weight: bold;
-        text-align: center;
-      }
-      #traceList {
-        flex: 1;
-        overflow-y: auto;
-        list-style: none;
-        padding: 0;
-        margin: 0;
-      }
-      .trace-item {
-        padding: 12px 15px;
-        border-bottom: 1px solid #334155;
-        cursor: pointer;
-        transition: 0.2s;
-      }
-      .trace-item:hover {
-        background: #334155;
-      }
-      .trace-item.active {
-        background: #2563eb;
-        color: white;
-        border-left: 4px solid #60a5fa;
-      }
-      .status-ok {
-        color: #4ade80;
-        font-weight: bold;
-      }
-      .status-err {
-        color: #f87171;
-        font-weight: bold;
-      }
-      .url-text {
-        font-size: 0.85em;
-        color: #94a3b8;
-        word-break: break-all;
-        margin-top: 5px;
-      }
-      .active .url-text {
-        color: #bfdbfe;
-      }
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
-      /* RIGHT COLUMN: PROMPT DISPLAY */
-      #main {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        padding: 20px;
-        overflow: hidden;
-      }
-      .action-bar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 15px;
-      }
-      button {
-        background: #10b981;
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 6px;
-        font-weight: bold;
-        cursor: pointer;
-        transition: 0.2s;
-      }
-      button:hover {
-        background: #059669;
-      }
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      height: 100vh;
+      background: #0f172a;
+      color: #e2e8f0;
+    }
 
-      /* Markdown display area */
-      #prompt-display {
-        flex: 1;
-        overflow-y: auto;
-        background: #1e293b;
-        padding: 20px;
-        border-radius: 8px;
-        border: 1px solid #334155;
-        line-height: 1.6;
-        font-size: 14px;
-      }
-      #prompt-display h3 {
-        color: #fbbf24;
-        border-bottom: 1px solid #334155;
-        padding-bottom: 5px;
-        margin-top: 20px;
-      }
+    /* LEFT COLUMN: REQUEST LIST */
+    #sidebar {
+      width: 350px;
+      background: #1e293b;
+      border-right: 1px solid #334155;
+      display: flex;
+      flex-direction: column;
+    }
 
-      #prompt-display pre {
-        background-color: #0f172a;
-        padding: 15px;
-        border-radius: 8px;
-        overflow-x: auto;
-        border: 1px solid #334155;
-        margin: 10px 0;
-      }
+    .header {
+      padding: 15px;
+      background: #0f172a;
+      border-bottom: 1px solid #334155;
+      font-weight: bold;
+      text-align: center;
+    }
 
-      #prompt-display pre code {
-        font-family: "Consolas", "Courier New", Courier, monospace;
-        font-size: 13px !important;
-        line-height: 1.4 !important;
-        color: #e2e8f0;
-        background-color: transparent;
-        padding: 0;
-        white-space: pre;
-      }
+    #traceList {
+      flex: 1;
+      overflow-y: auto;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
 
-      /* Inline code */
-      #prompt-display code {
-        font-family: "Consolas", "Courier New", Courier, monospace;
-        background-color: #0f172a;
-        padding: 3px 6px;
-        border-radius: 4px;
-        color: #e2e8f0;
-        font-size: 13px;
-      }
+    .trace-item {
+      padding: 12px 15px;
+      border-bottom: 1px solid #334155;
+      cursor: pointer;
+      transition: 0.2s;
+    }
 
-      .hljs {
-        background: transparent !important;
-      }
+    .trace-item:hover {
+      background: #334155;
+    }
 
-      /* Làm dịu màu link trong log (Màu xám nhạt Slate-400) */
-      #prompt-display a {
-        color: #94a3b8 !important;
-        text-decoration: none;
-        border-bottom: 1px dotted #64748b;
-        transition: all 0.2s ease-in-out;
-      }
+    .trace-item.active {
+      background: #2563eb;
+      color: white;
+      border-left: 4px solid #60a5fa;
+    }
 
-      #prompt-display a:hover {
-        color: #cbd5e1 !important;
-        border-bottom: 1px solid #cbd5e1;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="sidebar">
-      <div class="header" id="sidebarHeader">⏳ 20 Recent Requests</div>
-      <ul id="traceList"></ul>
-    </div>
+    .status-ok {
+      color: #4ade80;
+      font-weight: bold;
+    }
 
-    <div id="main">
-      <div class="action-bar">
-        <h2 id="mainTitle">📜 Prompt Context (Send to AI)</h2>
-        <div>
-          <select
-            id="langSelect"
-            onchange="changeLang()"
-            style="
+    .status-err {
+      color: #f87171;
+      font-weight: bold;
+    }
+
+    .url-text {
+      font-size: 0.85em;
+      color: #94a3b8;
+      word-break: break-all;
+      margin-top: 5px;
+    }
+
+    .active .url-text {
+      color: #bfdbfe;
+    }
+
+    /* RIGHT COLUMN: PROMPT DISPLAY */
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      overflow: hidden;
+    }
+
+    .action-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    button {
+      background: #10b981;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      background: #059669;
+    }
+
+    /* Markdown display area */
+    #prompt-display {
+      flex: 1;
+      overflow-y: auto;
+      background: #1e293b;
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    #prompt-display h3 {
+      color: #fbbf24;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 5px;
+      margin-top: 20px;
+    }
+
+    #prompt-display pre {
+      background-color: #0f172a;
+      padding: 15px;
+      border-radius: 8px;
+      overflow-x: auto;
+      border: 1px solid #334155;
+      margin: 10px 0;
+    }
+
+    #prompt-display pre code {
+      font-family: "Consolas", "Courier New", Courier, monospace;
+      font-size: 13px !important;
+      line-height: 1.4 !important;
+      color: #e2e8f0;
+      background-color: transparent;
+      padding: 0;
+      white-space: pre;
+    }
+
+    /* Inline code */
+    #prompt-display code {
+      font-family: "Consolas", "Courier New", Courier, monospace;
+      background-color: #0f172a;
+      padding: 3px 6px;
+      border-radius: 4px;
+      color: #e2e8f0;
+      font-size: 13px;
+    }
+
+    .hljs {
+      background: transparent !important;
+    }
+
+    /* Làm dịu màu link trong log (Màu xám nhạt Slate-400) */
+    #prompt-display a {
+      color: #94a3b8 !important;
+      text-decoration: none;
+      border-bottom: 1px dotted #64748b;
+      transition: all 0.2s ease-in-out;
+    }
+
+    #prompt-display a:hover {
+      color: #cbd5e1 !important;
+      border-bottom: 1px solid #cbd5e1;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="sidebar">
+    <div class="header" id="sidebarHeader">⏳ 20 Recent Requests</div>
+    <ul id="traceList"></ul>
+  </div>
+
+  <div id="main">
+    <div class="action-bar">
+      <h2 id="mainTitle">📜 Prompt Context (Send to AI)</h2>
+      <div>
+        <select id="langSelect" onchange="changeLang()" style="
               margin-right: 10px;
               padding: 8px 12px;
               background: #1e293b;
@@ -189,188 +200,180 @@
               border-radius: 6px;
               cursor: pointer;
               font-weight: bold;
-            "
-          >
-            <option value="vi">🇻🇳 Vietnamese</option>
-            <option value="en" selected>🇬🇧 English</option>
-          </select>
-          <button onclick="copyPrompt()" id="copyBtn">📋 Copy Prompt</button>
-        </div>
+            ">
+          <option value="vi">🇻🇳 Vietnamese</option>
+          <option value="en" selected>🇬🇧 English</option>
+        </select>
+        <button onclick="copyPrompt()" id="copyBtn">📋 Copy Prompt</button>
       </div>
-      <div id="prompt-display">
-        <h3
-          id="placeholderMsg"
-          style="
+    </div>
+    <div id="prompt-display">
+      <h3 id="placeholderMsg" style="
             color: #94a3b8;
             border: none;
             text-align: center;
             margin-top: 50px;
-          "
-        >
-          👈 Waiting... Click a Request on the left or trigger an error on your
-          App.
-        </h3>
-      </div>
+          ">
+        👈 Waiting... Click a Request on the left or trigger an error on your
+        App.
+      </h3>
     </div>
+  </div>
 
-    <script>
-      // =============================================
-      // i18n dictionary for UI strings
-      // =============================================
-      const UI_STRINGS = {
-        vi: {
-          sidebarHeader: "⏳ 100 Request Gần Đây",
-          mainTitle: "📜 Prompt Context (Gửi cho AI)",
-          copyBtn: "📋 Copy Prompt",
-          copiedBtn: "✅ Đã Copy!",
-          placeholder:
-            "👈 Đang chờ... Click một Request bên trái hoặc kích hoạt lỗi trên App.",
-          loading: "⏳ Đang lấy dữ liệu đa chiều (Front & Back)...",
-          loadError: "❌ Không thể tải Prompt.",
-          fetchError: "Lỗi khi lấy danh sách trace",
-        },
-        en: {
-          sidebarHeader: "⏳ 100 Recent Requests",
-          mainTitle: "📜 Prompt Context (Send to AI)",
-          copyBtn: "📋 Copy Prompt",
-          copiedBtn: "✅ Copied!",
-          placeholder:
-            "👈 Waiting... Click a Request on the left or trigger an error on your App.",
-          loading: "⏳ Fetching multi-dimensional data (Front & Back)...",
-          loadError: "❌ Failed to load Prompt.",
-          fetchError: "Error fetching trace list",
-        },
-      };
+  <script>
+    // =============================================
+    // i18n dictionary for UI strings
+    // =============================================
+    const UI_STRINGS = {
+      vi: {
+        sidebarHeader: "⏳ 100 Request Gần Đây",
+        mainTitle: "📜 Prompt Context (Gửi cho AI)",
+        copyBtn: "📋 Copy Prompt",
+        copiedBtn: "✅ Đã Copy!",
+        placeholder:
+          "👈 Đang chờ... Click một Request bên trái hoặc kích hoạt lỗi trên App.",
+        loading: "⏳ Đang lấy dữ liệu đa chiều (Front & Back)...",
+        loadError: "❌ Không thể tải Prompt.",
+        fetchError: "Lỗi khi lấy danh sách trace",
+      },
+      en: {
+        sidebarHeader: "⏳ 100 Recent Requests",
+        mainTitle: "📜 Prompt Context (Send to AI)",
+        copyBtn: "📋 Copy Prompt",
+        copiedBtn: "✅ Copied!",
+        placeholder:
+          "👈 Waiting... Click a Request on the left or trigger an error on your App.",
+        loading: "⏳ Fetching multi-dimensional data (Front & Back)...",
+        loadError: "❌ Failed to load Prompt.",
+        fetchError: "Error fetching trace list",
+      },
+    };
 
-      let currentTraceId = null;
-      let currentLang = "en";
-      let rawPromptText = "";
+    let currentTraceId = null;
+    let currentLang = "en";
+    let rawPromptText = "";
 
-      // Apply UI language
-      function applyUILang(lang) {
-        const s = UI_STRINGS[lang] || UI_STRINGS["en"];
-        document.getElementById("sidebarHeader").textContent = s.sidebarHeader;
-        document.getElementById("mainTitle").textContent = s.mainTitle;
-        document.getElementById("copyBtn").textContent = s.copyBtn;
-        const ph = document.getElementById("placeholderMsg");
-        if (ph) ph.textContent = s.placeholder;
-      }
+    // Apply UI language
+    function applyUILang(lang) {
+      const s = UI_STRINGS[lang] || UI_STRINGS["en"];
+      document.getElementById("sidebarHeader").textContent = s.sidebarHeader;
+      document.getElementById("mainTitle").textContent = s.mainTitle;
+      document.getElementById("copyBtn").textContent = s.copyBtn;
+      const ph = document.getElementById("placeholderMsg");
+      if (ph) ph.textContent = s.placeholder;
+    }
 
-      // Marked.js options for syntax highlighting
-      marked.setOptions({
-        highlight: function (code, lang) {
-          if (lang && hljs.getLanguage(lang)) {
-            return hljs.highlight(code, { language: lang }).value;
-          }
-          return hljs.highlightAuto(code).value;
-        },
-      });
 
-      async function fetchRecentTraces() {
-        const s = UI_STRINGS[currentLang] || UI_STRINGS["en"];
-        try {
-          const res = await fetch("http://localhost:4318/v1/recent-traces");
-          const traces = await res.json();
+    async function fetchRecentTraces() {
+      const s = UI_STRINGS[currentLang] || UI_STRINGS["en"];
+      try {
+        const res = await fetch("http://localhost:4318/v1/recent-traces");
+        const traces = await res.json();
 
-          if (!traces) return;
-          const ul = document.getElementById("traceList");
-          ul.innerHTML = "";
-          const seenRequests = new Set();
+        if (!traces) return;
+        const ul = document.getElementById("traceList");
+        ul.innerHTML = "";
+        const seenRequests = new Set();
 
-          traces.forEach((t) => {
-            const li = document.createElement("li");
-            li.className =
-              "trace-item " + (t.traceId === currentTraceId ? "active" : "");
-            const statusClass = t.hasError ? "status-err" : "status-ok";
+        traces.forEach((t) => {
+          const li = document.createElement("li");
+          li.className =
+            "trace-item " + (t.traceId === currentTraceId ? "active" : "");
+          const statusClass = t.hasError ? "status-err" : "status-ok";
 
-            let apiPath = t.url;
-            try {
-              const urlObj = new URL(t.url);
-              apiPath = urlObj.pathname;
-            } catch (e) {}
+          let apiPath = t.url;
+          try {
+            const urlObj = new URL(t.url);
+            apiPath = urlObj.pathname;
+          } catch (e) { }
 
-            const shortPath =
-              apiPath.length > 25 ? apiPath.substring(0, 25) + "..." : apiPath;
+          const shortPath =
+            apiPath.length > 25 ? apiPath.substring(0, 25) + "..." : apiPath;
 
-            li.innerHTML =
-              '<div style="display:flex; justify-content:space-between; align-items:center;">' +
-              '<span style="font-size:0.95em;"><span class="' +
-              statusClass +
-              '">[' +
-              t.statusCode +
-              "]</span> <b>" +
-              t.method +
-              "</b> " +
-              shortPath +
-              "</span>" +
-              '<span style="font-size:0.8em; color:#64748b;">' +
-              t.time +
-              "</span>" +
-              "</div>" +
-              '<div class="url-text">' +
-              t.url +
-              "</div>";
+          li.innerHTML =
+            '<div style="display:flex; justify-content:space-between; align-items:center;">' +
+            '<span style="font-size:0.95em;"><span class="' +
+            statusClass +
+            '">[' +
+            t.statusCode +
+            "]</span> <b>" +
+            t.method +
+            "</b> " +
+            shortPath +
+            "</span>" +
+            '<span style="font-size:0.8em; color:#64748b;">' +
+            t.time +
+            "</span>" +
+            "</div>" +
+            '<div class="url-text">' +
+            t.url +
+            "</div>";
 
-            li.onclick = () => loadPrompt(t.traceId);
-            ul.appendChild(li);
-          });
-        } catch (e) {
-          console.error(s.fetchError, e);
-        }
-      }
-
-      async function loadPrompt(traceId) {
-        const s = UI_STRINGS[currentLang] || UI_STRINGS["en"];
-        currentTraceId = traceId;
-        fetchRecentTraces();
-
-        document.getElementById("prompt-display").innerHTML =
-          "<h3>" + s.loading + "</h3>";
-        try {
-          const res = await fetch(
-            "http://localhost:4318/v1/prompt?traceId=" +
-              traceId +
-              "&lang=" +
-              currentLang,
-          );
-          const text = await res.text();
-
-          rawPromptText = text;
-
-          document.getElementById("prompt-display").innerHTML =
-            marked.parse(text);
-        } catch (e) {
-          document.getElementById("prompt-display").innerHTML =
-            "<h3 style='color: #f87171;'>" + s.loadError + "</h3>";
-        }
-      }
-
-      function copyPrompt() {
-        const s = UI_STRINGS[currentLang] || UI_STRINGS["en"];
-        if (!rawPromptText) return;
-        navigator.clipboard.writeText(rawPromptText).then(() => {
-          const btn = document.getElementById("copyBtn");
-          btn.textContent = s.copiedBtn;
-          btn.style.backgroundColor = "#059669";
-          setTimeout(() => {
-            btn.textContent = s.copyBtn;
-            btn.style.backgroundColor = "";
-          }, 2000);
+          li.onclick = () => loadPrompt(t.traceId);
+          ul.appendChild(li);
         });
+      } catch (e) {
+        console.error(s.fetchError, e);
       }
+    }
 
-      function changeLang() {
-        currentLang = document.getElementById("langSelect").value;
-        applyUILang(currentLang);
-        if (currentTraceId) {
-          loadPrompt(currentTraceId);
-        }
-      }
-
-      // Init
-      applyUILang(currentLang);
-      setInterval(fetchRecentTraces, 2000);
+    async function loadPrompt(traceId) {
+      const s = UI_STRINGS[currentLang] || UI_STRINGS["en"];
+      currentTraceId = traceId;
       fetchRecentTraces();
-    </script>
-  </body>
+
+      document.getElementById("prompt-display").innerHTML =
+        "<h3>" + s.loading + "</h3>";
+      try {
+        const res = await fetch(
+          "http://localhost:4318/v1/prompt?traceId=" +
+          traceId +
+          "&lang=" +
+          currentLang,
+        );
+        const text = await res.text();
+
+        rawPromptText = text;
+
+        document.getElementById("prompt-display").innerHTML = marked.parse(text);
+
+        document.querySelectorAll('#prompt-display pre code').forEach((block) => {
+          hljs.highlightElement(block);
+        });
+
+      } catch (e) {
+        document.getElementById("prompt-display").innerHTML =
+          "<h3 style='color: #f87171;'>" + s.loadError + "</h3>";
+      }
+    }
+
+    function copyPrompt() {
+      const s = UI_STRINGS[currentLang] || UI_STRINGS["en"];
+      if (!rawPromptText) return;
+      navigator.clipboard.writeText(rawPromptText).then(() => {
+        const btn = document.getElementById("copyBtn");
+        btn.textContent = s.copiedBtn;
+        btn.style.backgroundColor = "#059669";
+        setTimeout(() => {
+          btn.textContent = s.copyBtn;
+          btn.style.backgroundColor = "";
+        }, 2000);
+      });
+    }
+
+    function changeLang() {
+      currentLang = document.getElementById("langSelect").value;
+      applyUILang(currentLang);
+      if (currentTraceId) {
+        loadPrompt(currentTraceId);
+      }
+    }
+
+    // Init
+    applyUILang(currentLang);
+    setInterval(fetchRecentTraces, 2000);
+    fetchRecentTraces();
+  </script>
+</body>
+
 </html>

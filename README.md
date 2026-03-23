@@ -94,7 +94,7 @@ Unlike traditional loggers, **Trace2Prompt** captures the entire user journey. H
 <details>
 <summary>👉 Click to expand a real POST Request Trace (with Masking & SQL)</summary>
 
-```text
+````text
 Please analyze the system error based on the E2E Runtime Context below:
 
 =================================================
@@ -280,7 +280,7 @@ TraceID: `210f81049b3364bfc84e7f0e72245898`
     - [7 ms] 📦 [coffee-order-app] ⚙️ `Session.merge com.coffeeshop.backend.entity.ProductStock`
 
 =================================================
-```
+````
 
 </details>
 
